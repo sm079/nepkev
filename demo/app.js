@@ -1,4 +1,3 @@
-import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.0-dev.20260914-8d85527a0/dist/ort.webgpu.min.mjs";
 import { Tokenizer } from "https://cdn.jsdelivr.net/npm/@huggingface/tokenizers@0.2.0/dist/tokenizers.min.mjs";
 import { KevRouter, MAX_TRAIN_STATE, argmax, fetchJSON } from "./kev.js";
 
@@ -7,8 +6,24 @@ const params = new URLSearchParams(location.search);
 const REPO = "sm079/nepkev";
 const MODEL_BASE = (params.get("model") || `https://huggingface.co/${REPO}/resolve/main/onnx`).replace(/\/$/, "");
 
-ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.min(8, navigator.hardwareConcurrency || 4) : 1;
-ort.env.webgpu.powerPreference = "high-performance";
+// one ONNX Runtime build per backend: the WebGPU build's CPU kernels are slower and lack some quantized ops
+const ORT_URL = {
+  webgpu: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.0-dev.20260914-8d85527a0/dist/ort.webgpu.min.mjs",
+  wasm: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.0-dev.20260914-8d85527a0/dist/ort.wasm.min.mjs",
+};
+const THREADS = self.crossOriginIsolated ? Math.min(8, navigator.hardwareConcurrency || 4) : 1;
+let ort = null, ortBackend = null;
+
+async function runtime(backend) {
+  if (ort && ortBackend !== backend) {   // two runtimes in one page do not mix: start over with the other one
+    const u = new URL(location.href); u.searchParams.set("backend", backend); u.searchParams.set("load", "1"); location.assign(u); await new Promise(() => {});
+  }
+  if (!ort) {
+    ort = await import(ORT_URL[backend]); ortBackend = backend;
+    ort.env.wasm.numThreads = THREADS;
+  }
+  return ort;
+}
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, attrs = {}, ...kids) => {
@@ -44,8 +59,9 @@ async function init() {
   } catch (e) {
     setStatus("error", `Could not read the model manifest (${e.message})`); $("load").disabled = true; return;
   }
+  if (["auto", "webgpu", "wasm"].includes(params.get("backend"))) $("backend").value = params.get("backend");
   await pickBackend();
-  if (await isCached()) load();
+  if (params.get("load") === "1" || await isCached()) load();
 }
 
 async function webgpuAvailable() {
@@ -84,7 +100,7 @@ async function updateLoadButton() {
   if (!v) return;
   const cached = await isCached();
   $("load").textContent = S.router ? "Reload" : cached ? "Load (cached)" : `Load model · ${mib(v.bytes + Object.values(S.manifest.files).reduce((a, b) => a + b, 0))}`;
-  $("footnote").textContent = `${v.note || ""} Backend: ${S.backend === "webgpu" ? "WebGPU (GPU)" : `CPU via WebAssembly, ${ort.env.wasm.numThreads} thread${ort.env.wasm.numThreads > 1 ? "s" : ""}: expect several seconds per question`}. Weights are cached by the browser after the first download.`;
+  $("footnote").textContent = `${v.note || ""} Backend: ${S.backend === "webgpu" ? "WebGPU (GPU)" : `CPU via WebAssembly, ${THREADS} thread${THREADS > 1 ? "s" : ""}: expect a few seconds per question`}. Weights are cached by the browser after the first download.`;
 }
 
 function setStatus(kind, text) {
@@ -99,6 +115,7 @@ async function load() {
   try {
     S.router?.session?.release?.();
     S.router = null;
+    const ort = await runtime(backend);
     S.router = await KevRouter.load({
       ort, Tokenizer, base: MODEL_BASE, variant, ep: backend,
       onProgress: ({ loaded, total, stage, cached }) => {
