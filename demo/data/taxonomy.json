@@ -1,0 +1,136 @@
+{
+  "version": "demo-1",
+  "fallback": "other",
+  "domains": {
+    "shop": {
+      "name": "online shop",
+      "ne": "अनलाइन पसल",
+      "issue": {
+        "type": "choice",
+        "instructions": "Which category best describes the customer's problem in this online shop support message?",
+        "criteria": {
+          "order_status": "Asking where an order is or what its current status is, with no sign it is late or lost",
+          "delivery_delay_missing": "Delivery is late past the promised date, or the parcel is lost or marked delivered but not received",
+          "wrong_damaged_item": "The item received is not what was ordered (wrong product, size, colour) or arrived damaged or defective",
+          "cancellation": "Wants to cancel an order before it is delivered",
+          "return_exchange": "Wants to return or exchange a correct, undamaged item (does not fit, changed mind)",
+          "pending_refund": "A refund was promised or approved but has not arrived",
+          "payment_failed_debited": "Checkout payment failed or showed an error, but money was still deducted",
+          "payment_failed_no_debit": "Checkout payment failed or was declined and no money was deducted",
+          "duplicate_debit": "Charged more than once for the same order",
+          "product_inquiry": "Question about a product before buying: price, specs, stock, warranty",
+          "other": "A clear request that fits none of the categories above"
+        }
+      },
+      "clarification": {
+        "type": "noul",
+        "instructions": "Before routing this online shop support message, does the agent first need to ask the customer what the problem is?",
+        "criteria": {
+          "true": "The message is too vague to identify a problem, or it raises several problems without saying which to handle first",
+          "false": "The message states one problem, or says which problem to handle first, or is clearly about something specific"
+        }
+      },
+      "names_ne": {
+        "order_status": "अर्डर कहाँ पुग्यो वा कुन अवस्थामा छ भन्ने जिज्ञासा",
+        "delivery_delay_missing": "डेलिभरी ढिलो, हराएको वा डेलिभर्ड देखाएर नआएको",
+        "wrong_damaged_item": "गलत, बिग्रिएको वा खराब सामान आएको",
+        "cancellation": "डेलिभरी अघि अर्डर रद्द गर्न चाहेको",
+        "return_exchange": "ठीक सामान फिर्ता वा साट्न चाहेको",
+        "pending_refund": "फिर्ता गर्ने भनिएको पैसा नआएको",
+        "payment_failed_debited": "पेमेन्ट फेल भयो तर पैसा काटियो",
+        "payment_failed_no_debit": "पेमेन्ट फेल भयो, पैसा काटिएन",
+        "duplicate_debit": "एउटै अर्डरको पैसा धेरै पटक काटिएको",
+        "product_inquiry": "किन्नु अघि सामानबारे जिज्ञासा",
+        "other": "माथिका कुनै वर्गमा नपर्ने स्पष्ट अनुरोध"
+      }
+    },
+    "wallet": {
+      "name": "digital wallet",
+      "ne": "डिजिटल वालेट",
+      "issue": {
+        "type": "choice",
+        "instructions": "Which category best describes the customer's problem in this digital wallet support message?",
+        "criteria": {
+          "login_otp": "Cannot log in to the wallet app, forgot PIN or password, or the OTP does not arrive",
+          "identity_verification": "KYC or identity verification is pending, rejected, or documents are not accepted",
+          "transfer_not_credited": "Money left the sender's wallet for another person but the recipient has not received it",
+          "wrong_recipient": "Money was sent and credited to the wrong person or number by the customer's mistake",
+          "payment_failed_debited": "A payment to a merchant or bill failed or showed an error, but money was still deducted",
+          "payment_failed_no_debit": "A payment to a merchant or bill failed or was declined and no money was deducted",
+          "duplicate_debit": "The same payment was deducted more than once",
+          "pending_refund": "A refund that was promised or started has not arrived in the wallet",
+          "bank_linking": "Cannot link, unlink or verify a bank account with the wallet, or load money from a linked bank",
+          "withdrawal_issue": "Moving wallet balance out to the customer's own bank account or an agent failed or is stuck",
+          "unexpected_transaction": "A transaction the customer does not recognise or says they did not make",
+          "other": "A clear request that fits none of the categories above"
+        }
+      },
+      "clarification": {
+        "type": "noul",
+        "instructions": "Before routing this digital wallet support message, does the agent first need to ask the customer what the problem is?",
+        "criteria": {
+          "true": "The message is too vague to identify a problem, or it raises several problems without saying which to handle first",
+          "false": "The message states one problem, or says which problem to handle first, or is clearly about something specific"
+        }
+      },
+      "names_ne": {
+        "login_otp": "लगइन, पिन/पासवर्ड वा ओटीपी समस्या",
+        "identity_verification": "केवाईसी/पहिचान प्रमाणीकरण समस्या",
+        "transfer_not_credited": "पैसा पठाइयो तर पाउनेलाई पुगेन",
+        "wrong_recipient": "गल्तीले अर्कैलाई पैसा पठाइएको",
+        "payment_failed_debited": "भुक्तानी फेल भयो तर पैसा काटियो",
+        "payment_failed_no_debit": "भुक्तानी फेल भयो, पैसा काटिएन",
+        "duplicate_debit": "एउटै भुक्तानी धेरै पटक काटिएको",
+        "pending_refund": "फिर्ता आउने पैसा वालेटमा नआएको",
+        "bank_linking": "बैंक खाता लिंक वा बैंकबाट लोड गर्ने समस्या",
+        "withdrawal_issue": "वालेटबाट आफ्नै बैंक/एजेन्टमा पैसा निकाल्ने समस्या",
+        "unexpected_transaction": "आफूले नगरेको वा नचिनेको कारोबार",
+        "other": "माथिका कुनै वर्गमा नपर्ने स्पष्ट अनुरोध"
+      }
+    },
+    "bank": {
+      "name": "bank",
+      "ne": "बैंक",
+      "issue": {
+        "type": "choice",
+        "instructions": "Which category best describes the customer's problem in this bank support message?",
+        "criteria": {
+          "account_access": "The account itself is frozen, dormant, blocked or restricted, so it cannot be operated even at a branch",
+          "digital_banking_login_otp": "Cannot log in to mobile or internet banking, password rejected, or the OTP does not arrive",
+          "card_issue": "A debit or credit card is blocked, lost, stolen, not working, or needs a PIN or replacement",
+          "transfer_not_credited": "A transfer left the customer's account but has not reached the recipient's account",
+          "wrong_recipient": "Money was transferred and credited to the wrong account by the customer's mistake",
+          "payment_failed_debited": "A payment (QR, merchant, bill) failed or showed an error, but money was still deducted",
+          "payment_failed_no_debit": "A payment (QR, merchant, bill) failed or was declined and no money was deducted",
+          "duplicate_debit": "The same payment was deducted more than once",
+          "withdrawal_atm_issue": "Cash withdrawal problem: ATM did not dispense, dispensed less, or kept the card",
+          "unexpected_transaction": "A transaction the customer does not recognise or says they did not make",
+          "account_service_inquiry": "Question about an account or banking product: requirements, fees, interest, opening procedures",
+          "other": "A clear request that fits none of the categories above"
+        }
+      },
+      "clarification": {
+        "type": "noul",
+        "instructions": "Before routing this bank support message, does the agent first need to ask the customer what the problem is?",
+        "criteria": {
+          "true": "The message is too vague to identify a problem, or it raises several problems without saying which to handle first",
+          "false": "The message states one problem, or says which problem to handle first, or is clearly about something specific"
+        }
+      },
+      "names_ne": {
+        "account_access": "खाता रोक्का/डर्मेन्ट भएर चलाउन नमिल्ने",
+        "digital_banking_login_otp": "मोबाइल/इन्टरनेट बैंकिङ लगइन वा ओटीपी समस्या",
+        "card_issue": "डेबिट/क्रेडिट कार्ड समस्या",
+        "transfer_not_credited": "ट्रान्सफर गरियो तर पाउनेको खातामा पुगेन",
+        "wrong_recipient": "गल्तीले अर्कैको खातामा पैसा गएको",
+        "payment_failed_debited": "भुक्तानी फेल भयो तर पैसा काटियो",
+        "payment_failed_no_debit": "भुक्तानी फेल भयो, पैसा काटिएन",
+        "duplicate_debit": "एउटै भुक्तानी धेरै पटक काटिएको",
+        "withdrawal_atm_issue": "एटीएमबाट पैसा ननिस्किएको वा कम निस्किएको",
+        "unexpected_transaction": "आफूले नगरेको वा नचिनेको कारोबार",
+        "account_service_inquiry": "खाता वा बैंकिङ सेवाबारे जिज्ञासा",
+        "other": "माथिका कुनै वर्गमा नपर्ने स्पष्ट अनुरोध"
+      }
+    }
+  }
+}
