@@ -1,0 +1,26 @@
+# One RunPod GPU pod per run of Kev-0.8B: baseline, two fine-tuning epochs, dev selection, calib temperature, test.
+# Kev-0.8B trains in bf16 at batch 1-4 in a few GB, so any 24 GB card is plenty; the list is in order of preference.
+gpu_types: ["NVIDIA GeForce RTX 4090", "NVIDIA RTX A5000", "NVIDIA L4", "NVIDIA RTX A6000", "NVIDIA A40"]
+cloud_type: SECURE
+image: runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04   # only the driver and sshd are used; uv installs Kev's own torch
+allowed_cuda_versions: ["12.8", "12.9", "13.0"]                   # torch 2.8 cu12.8 wheels need a 12.8+ driver
+container_disk_gb: 60
+max_cost_per_hr: 1.00        # refuse a pod that costs more than this
+max_minutes: 120             # hard limit for the remote job; the pod is terminated at this deadline (+10 min) regardless
+
+# Upstream pins (must match configs/upstream.yaml)
+kev_commit: 5e42a7a03f28134853dd3ff77461457e921e5ec1
+kev_model: jaredpalmer/kev-0.8b
+kev_revision: 9a45d25eb2ab761841196625383fa1dff0e56c1e
+kev_base: Qwen/Qwen3.5-0.8B-Base
+kev_base_revision: dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68
+
+# Fine-tuning from the released checkpoint: upstream's recommended delta learning rate (README: 2e-5),
+# its 0.8B document-stage batch shape (4 x 2), bf16 autocast, gradient checkpointing.
+lr: 2.0e-5
+batch: 4
+accum: 2
+# Kev's fine-tuning example uses 2 epochs. Each epoch is evaluated on dev and the lower dev NLL is kept
+# (a 4-epoch run had its lowest dev NLL at epoch 2 and rose after).
+epochs: 2
+seed: 0

@@ -1,0 +1,307 @@
+# Demo routing taxonomy. Not a representation of any real institution.
+# `description` is what the model reads (English). `ne` is for people (UI, review).
+# Category ids are stable machine ids: never rename, only add or deprecate with a new version.
+version: demo-1
+
+questions:
+  issue:
+    # First entry is the serving wording; the rest are training paraphrases.
+    instructions:
+      - "Which category best describes the customer's problem in this {domain} support message?"
+      - "Route this {domain} support message: which category does the customer's problem belong to?"
+      - "Pick the category that matches what the customer is reporting in this {domain} support message."
+      - "Which team category should this {domain} customer message go to?"
+  clarification:
+    instructions:
+      - "Before routing this {domain} support message, does the agent first need to ask the customer what the problem is?"
+      - "Is this {domain} support message too unclear to route without asking the customer a follow-up question?"
+      - "Does the agent need more information from the customer before this {domain} message can be routed to one category?"
+    criteria:
+      "true": "The message is too vague to identify a problem, or it raises several problems without saying which to handle first"
+      "false": "The message states one problem, or says which problem to handle first, or is clearly about something specific"
+
+# Category id used when a clear request fits nothing listed, and as the fallback when the
+# correct category is removed from the candidate list.
+fallback: other
+
+domains:
+  shop:
+    name: online shop
+    ne: अनलाइन पसल
+    categories:
+      order_status:
+        description: "Asking where an order is or what its current status is, with no sign it is late or lost"
+        ne: अर्डर कहाँ पुग्यो वा कुन अवस्थामा छ भन्ने जिज्ञासा
+        include: ["where is my order", "has it shipped", "when will it arrive (not yet late)"]
+        exclude: ["past the promised date -> delivery_delay_missing", "marked delivered but not received -> delivery_delay_missing"]
+        neighbors: [delivery_delay_missing, cancellation]
+        facts: [order_id, days_since_order]
+      delivery_delay_missing:
+        description: "Delivery is late past the promised date, or the parcel is lost or marked delivered but not received"
+        ne: डेलिभरी ढिलो, हराएको वा डेलिभर्ड देखाएर नआएको
+        include: ["late past promised date", "parcel lost", "tracking says delivered but nothing received"]
+        exclude: ["just asking status, not late -> order_status"]
+        neighbors: [order_status, pending_refund]
+        facts: [order_id, days_late]
+      wrong_damaged_item:
+        description: "The item received is not what was ordered (wrong product, size, colour) or arrived damaged or defective"
+        ne: गलत, बिग्रिएको वा खराब सामान आएको
+        include: ["wrong size/colour/product sent", "broken or defective on arrival", "missing parts"]
+        exclude: ["correct item that does not fit or is unwanted -> return_exchange"]
+        neighbors: [return_exchange, pending_refund]
+        facts: [order_id, ordered_item, received_item]
+      cancellation:
+        description: "Wants to cancel an order before it is delivered"
+        ne: डेलिभरी अघि अर्डर रद्द गर्न चाहेको
+        include: ["cancel before delivery", "ordered by mistake, not shipped yet"]
+        exclude: ["already delivered and wants to send back -> return_exchange"]
+        neighbors: [return_exchange, order_status]
+        facts: [order_id]
+      return_exchange:
+        description: "Wants to return or exchange a correct, undamaged item (does not fit, changed mind)"
+        ne: ठीक सामान फिर्ता वा साट्न चाहेको
+        include: ["does not fit", "changed mind", "exchange for another size"]
+        exclude: ["item wrong or damaged -> wrong_damaged_item", "already returned, waiting for money -> pending_refund"]
+        neighbors: [wrong_damaged_item, cancellation, pending_refund]
+        facts: [order_id, item]
+      pending_refund:
+        description: "A refund was promised or approved but has not arrived"
+        ne: फिर्ता गर्ने भनिएको पैसा नआएको
+        include: ["return approved, money not received", "cancelled order refund not received"]
+        exclude: ["wants to start a return -> return_exchange"]
+        neighbors: [return_exchange, duplicate_debit, payment_failed_debited]
+        facts: [order_id, amount_npr, days_waiting]
+      payment_failed_debited:
+        description: "Checkout payment failed or showed an error, but money was still deducted"
+        ne: पेमेन्ट फेल भयो तर पैसा काटियो
+        include: ["failed at checkout but money deducted", "error shown, balance reduced, no order"]
+        exclude: ["failed and nothing deducted -> payment_failed_no_debit", "charged twice for one order -> duplicate_debit"]
+        neighbors: [payment_failed_no_debit, duplicate_debit, pending_refund]
+        facts: [amount_npr, payment_method]
+      payment_failed_no_debit:
+        description: "Checkout payment failed or was declined and no money was deducted"
+        ne: पेमेन्ट फेल भयो, पैसा काटिएन
+        include: ["payment declined, nothing deducted", "cannot complete payment"]
+        exclude: ["money was deducted -> payment_failed_debited"]
+        neighbors: [payment_failed_debited]
+        facts: [payment_method]
+      duplicate_debit:
+        description: "Charged more than once for the same order"
+        ne: एउटै अर्डरको पैसा धेरै पटक काटिएको
+        include: ["two charges for one order", "same amount deducted twice"]
+        exclude: ["one failed payment with a debit -> payment_failed_debited"]
+        neighbors: [payment_failed_debited, pending_refund]
+        facts: [order_id, amount_npr, times_charged]
+      product_inquiry:
+        description: "Question about a product before buying: price, specs, stock, warranty"
+        ne: किन्नु अघि सामानबारे जिज्ञासा
+        include: ["price, size, colour availability", "warranty, specs", "stock"]
+        exclude: ["complaint about an item already received -> wrong_damaged_item"]
+        neighbors: [order_status]
+        facts: [product]
+      other:
+        description: "A clear request that fits none of the categories above"
+        ne: माथिका कुनै वर्गमा नपर्ने स्पष्ट अनुरोध
+        include: ["seller/staff complaint", "account or address change", "feedback"]
+        exclude: ["vague or unclear message -> clarification, not other"]
+        neighbors: []
+        facts: []
+    contrasts:
+      - [payment_failed_debited, payment_failed_no_debit, "whether money was deducted"]
+      - [wrong_damaged_item, return_exchange, "whether the item received matches the order and is undamaged"]
+      - [order_status, delivery_delay_missing, "whether the delivery is already late or missing"]
+      - [cancellation, return_exchange, "whether the order has been delivered"]
+      - [duplicate_debit, payment_failed_debited, "one failed payment versus two successful charges"]
+      - [product_inquiry, wrong_damaged_item, "question before buying versus complaint after receiving"]
+
+  wallet:
+    name: digital wallet
+    ne: डिजिटल वालेट
+    categories:
+      login_otp:
+        description: "Cannot log in to the wallet app, forgot PIN or password, or the OTP does not arrive"
+        ne: लगइन, पिन/पासवर्ड वा ओटीपी समस्या
+        include: ["OTP not received", "forgot PIN", "app login fails"]
+        exclude: ["KYC/identity documents -> identity_verification"]
+        neighbors: [identity_verification]
+        facts: [device]
+      identity_verification:
+        description: "KYC or identity verification is pending, rejected, or documents are not accepted"
+        ne: केवाईसी/पहिचान प्रमाणीकरण समस्या
+        include: ["KYC pending", "KYC rejected", "document upload fails"]
+        exclude: ["cannot log in -> login_otp"]
+        neighbors: [login_otp, bank_linking]
+        facts: [kyc_status, days_waiting]
+      transfer_not_credited:
+        description: "Money left the sender's wallet for another person but the recipient has not received it"
+        ne: पैसा पठाइयो तर पाउनेलाई पुगेन
+        include: ["sent to friend, debited, not received"]
+        exclude: ["credited to wrong person -> wrong_recipient", "to own bank account -> withdrawal_issue"]
+        neighbors: [wrong_recipient, withdrawal_issue, payment_failed_debited]
+        facts: [amount_npr, hours_since]
+      wrong_recipient:
+        description: "Money was sent and credited to the wrong person or number by the customer's mistake"
+        ne: गल्तीले अर्कैलाई पैसा पठाइएको
+        include: ["typed wrong number", "sent to wrong contact"]
+        exclude: ["recipient did not receive -> transfer_not_credited"]
+        neighbors: [transfer_not_credited, unexpected_transaction]
+        facts: [amount_npr]
+      payment_failed_debited:
+        description: "A payment to a merchant or bill failed or showed an error, but money was still deducted"
+        ne: भुक्तानी फेल भयो तर पैसा काटियो
+        include: ["bill payment failed but debited", "merchant QR failed, balance reduced"]
+        exclude: ["nothing deducted -> payment_failed_no_debit", "charged twice -> duplicate_debit", "person-to-person transfer -> transfer_not_credited"]
+        neighbors: [payment_failed_no_debit, duplicate_debit, transfer_not_credited, pending_refund]
+        facts: [amount_npr, biller]
+      payment_failed_no_debit:
+        description: "A payment to a merchant or bill failed or was declined and no money was deducted"
+        ne: भुक्तानी फेल भयो, पैसा काटिएन
+        include: ["bill payment fails, balance unchanged"]
+        exclude: ["money deducted -> payment_failed_debited"]
+        neighbors: [payment_failed_debited]
+        facts: [biller]
+      duplicate_debit:
+        description: "The same payment was deducted more than once"
+        ne: एउटै भुक्तानी धेरै पटक काटिएको
+        include: ["bill paid once, deducted twice"]
+        exclude: ["one failed payment with a debit -> payment_failed_debited"]
+        neighbors: [payment_failed_debited, unexpected_transaction]
+        facts: [amount_npr, times_charged]
+      pending_refund:
+        description: "A refund that was promised or started has not arrived in the wallet"
+        ne: फिर्ता आउने पैसा वालेटमा नआएको
+        include: ["merchant refunded, not received", "reversal promised, not arrived"]
+        exclude: []
+        neighbors: [payment_failed_debited, duplicate_debit]
+        facts: [amount_npr, days_waiting]
+      bank_linking:
+        description: "Cannot link, unlink or verify a bank account with the wallet, or load money from a linked bank"
+        ne: बैंक खाता लिंक वा बैंकबाट लोड गर्ने समस्या
+        include: ["link bank fails", "load from bank fails"]
+        exclude: ["moving wallet money out to bank -> withdrawal_issue"]
+        neighbors: [withdrawal_issue, identity_verification]
+        facts: [bank_name_fictional]
+      withdrawal_issue:
+        description: "Moving wallet balance out to the customer's own bank account or an agent failed or is stuck"
+        ne: वालेटबाट आफ्नै बैंक/एजेन्टमा पैसा निकाल्ने समस्या
+        include: ["wallet to own bank stuck processing", "agent cash-out failed"]
+        exclude: ["sending to another person -> transfer_not_credited"]
+        neighbors: [transfer_not_credited, bank_linking]
+        facts: [amount_npr, days_waiting]
+      unexpected_transaction:
+        description: "A transaction the customer does not recognise or says they did not make"
+        ne: आफूले नगरेको वा नचिनेको कारोबार
+        include: ["unknown debit in history", "did not make this payment"]
+        exclude: ["same payment twice -> duplicate_debit"]
+        neighbors: [duplicate_debit, wrong_recipient]
+        facts: [amount_npr, time]
+      other:
+        description: "A clear request that fits none of the categories above"
+        ne: माथिका कुनै वर्गमा नपर्ने स्पष्ट अनुरोध
+        include: ["cashback/offer question", "close account", "change phone number"]
+        exclude: ["vague or unclear message -> clarification, not other"]
+        neighbors: []
+        facts: []
+    contrasts:
+      - [transfer_not_credited, wrong_recipient, "whether the money reached the wrong person or nobody"]
+      - [transfer_not_credited, withdrawal_issue, "another person versus the customer's own bank account"]
+      - [payment_failed_debited, payment_failed_no_debit, "whether money was deducted"]
+      - [duplicate_debit, unexpected_transaction, "a repeated known payment versus an unknown one"]
+      - [bank_linking, withdrawal_issue, "linking or loading versus moving money out"]
+      - [login_otp, identity_verification, "app access versus KYC documents"]
+
+  bank:
+    name: bank
+    ne: बैंक
+    categories:
+      account_access:
+        description: "The account itself is frozen, dormant, blocked or restricted, so it cannot be operated even at a branch"
+        ne: खाता रोक्का/डर्मेन्ट भएर चलाउन नमिल्ने
+        include: ["account dormant", "account frozen", "branch refused withdrawal due to account status"]
+        exclude: ["mobile/internet banking login fails -> digital_banking_login_otp", "card blocked -> card_issue"]
+        neighbors: [digital_banking_login_otp, card_issue, account_service_inquiry]
+        facts: [account_status]
+      digital_banking_login_otp:
+        description: "Cannot log in to mobile or internet banking, password rejected, or the OTP does not arrive"
+        ne: मोबाइल/इन्टरनेट बैंकिङ लगइन वा ओटीपी समस्या
+        include: ["mobile banking login fails", "OTP not received", "password invalid"]
+        exclude: ["the account itself is blocked -> account_access"]
+        neighbors: [account_access]
+        facts: [channel]
+      card_issue:
+        description: "A debit or credit card is blocked, lost, stolen, not working, or needs a PIN or replacement"
+        ne: डेबिट/क्रेडिट कार्ड समस्या
+        include: ["card blocked after wrong PIN", "lost card", "card not working at POS"]
+        exclude: ["ATM did not dispense cash -> withdrawal_atm_issue"]
+        neighbors: [withdrawal_atm_issue, account_access]
+        facts: [card_type]
+      transfer_not_credited:
+        description: "A transfer left the customer's account but has not reached the recipient's account"
+        ne: ट्रान्सफर गरियो तर पाउनेको खातामा पुगेन
+        include: ["interbank transfer not credited", "fund transfer debited, beneficiary not received"]
+        exclude: ["credited to wrong account -> wrong_recipient"]
+        neighbors: [wrong_recipient, payment_failed_debited]
+        facts: [amount_npr, hours_since]
+      wrong_recipient:
+        description: "Money was transferred and credited to the wrong account by the customer's mistake"
+        ne: गल्तीले अर्कैको खातामा पैसा गएको
+        include: ["wrong account number", "wrong beneficiary selected"]
+        exclude: ["not received by anyone -> transfer_not_credited"]
+        neighbors: [transfer_not_credited, unexpected_transaction]
+        facts: [amount_npr]
+      payment_failed_debited:
+        description: "A payment (QR, merchant, bill) failed or showed an error, but money was still deducted"
+        ne: भुक्तानी फेल भयो तर पैसा काटियो
+        include: ["QR payment failed but debited", "bill payment error, account debited"]
+        exclude: ["ATM cash -> withdrawal_atm_issue", "nothing deducted -> payment_failed_no_debit"]
+        neighbors: [payment_failed_no_debit, withdrawal_atm_issue, duplicate_debit]
+        facts: [amount_npr, payment_method]
+      payment_failed_no_debit:
+        description: "A payment (QR, merchant, bill) failed or was declined and no money was deducted"
+        ne: भुक्तानी फेल भयो, पैसा काटिएन
+        include: ["QR payment declined, balance unchanged"]
+        exclude: ["money deducted -> payment_failed_debited"]
+        neighbors: [payment_failed_debited, card_issue]
+        facts: [payment_method]
+      duplicate_debit:
+        description: "The same payment was deducted more than once"
+        ne: एउटै भुक्तानी धेरै पटक काटिएको
+        include: ["QR payment deducted twice"]
+        exclude: ["unknown transaction -> unexpected_transaction"]
+        neighbors: [payment_failed_debited, unexpected_transaction]
+        facts: [amount_npr, times_charged]
+      withdrawal_atm_issue:
+        description: "Cash withdrawal problem: ATM did not dispense, dispensed less, or kept the card"
+        ne: एटीएमबाट पैसा ननिस्किएको वा कम निस्किएको
+        include: ["ATM debited but no cash", "less cash dispensed", "ATM captured card"]
+        exclude: ["card blocked/lost generally -> card_issue"]
+        neighbors: [card_issue, payment_failed_debited]
+        facts: [amount_npr, atm_location_fictional]
+      unexpected_transaction:
+        description: "A transaction the customer does not recognise or says they did not make"
+        ne: आफूले नगरेको वा नचिनेको कारोबार
+        include: ["unknown debit SMS", "did not make this transaction"]
+        exclude: ["same payment twice -> duplicate_debit"]
+        neighbors: [duplicate_debit, wrong_recipient]
+        facts: [amount_npr, time]
+      account_service_inquiry:
+        description: "Question about an account or banking product: requirements, fees, interest, opening procedures"
+        ne: खाता वा बैंकिङ सेवाबारे जिज्ञासा
+        include: ["documents to open account", "interest rate", "fees"]
+        exclude: ["complaint about a blocked account -> account_access", "branch hours, locations or staff -> other"]
+        neighbors: [account_access]
+        facts: [bank_product]
+      other:
+        description: "A clear request that fits none of the categories above"
+        ne: माथिका कुनै वर्गमा नपर्ने स्पष्ट अनुरोध
+        include: ["staff behaviour complaint", "branch hours", "loan application status"]
+        exclude: ["vague or unclear message -> clarification, not other"]
+        neighbors: []
+        facts: []
+    contrasts:
+      - [digital_banking_login_otp, account_access, "app login versus the account itself being restricted"]
+      - [transfer_not_credited, wrong_recipient, "whether the money reached the wrong account or nobody"]
+      - [withdrawal_atm_issue, card_issue, "cash not dispensed versus the card itself"]
+      - [withdrawal_atm_issue, payment_failed_debited, "ATM cash versus a payment"]
+      - [payment_failed_debited, payment_failed_no_debit, "whether money was deducted"]
+      - [account_service_inquiry, account_access, "a question versus a blocked account"]

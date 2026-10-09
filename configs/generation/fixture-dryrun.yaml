@@ -1,0 +1,51 @@
+# Network-free run for development and CI: the dry-run provider renders from fixtures and templates.
+name: fixture-dryrun
+taxonomy_version: demo-1
+seed: 1
+scenarios_per_domain: 40
+
+family_mix:
+  single: 0.40
+  contrast: 0.20
+  negation: 0.07
+  corrected_statement: 0.05
+  irrelevant_background: 0.05
+  missing_details: 0.03
+  out_of_scope: 0.08
+  vague: 0.06
+  multi_issue:no_priority: 0.03
+  multi_issue:stated_priority: 0.03
+
+style:
+  length: {short: 0.5, medium: 0.4, long: 0.1}
+  tone: {neutral: 0.4, polite: 0.2, frustrated: 0.2, angry: 0.1, urgent: 0.1}
+  formality: {casual: 0.88, formal: 0.12}
+
+# The generator writes every scenario once in pure Devanagari. A Romanized variant (with random English
+# mixed in) is derived programmatically for this share of the accepted Devanagari records, so most data
+# stays Devanagari.
+roman_share: 0.5
+
+generator:
+  provider: dry_run
+  model: dry-run
+  scenarios_per_request: 5
+  concurrency: 1
+  max_retries: 0
+  prompt: generate_v2
+
+verifier:
+  provider: dry_run
+  model: dry-run
+  messages_per_request: 20
+  concurrency: 1
+  prompt: verify_v1
+
+prices: {}
+estimate:
+  system_tokens: 0
+  user_tokens_per_scenario: 0
+  output_tokens_per_scenario: 0
+  thinking_tokens_per_request: 0
+  verify_user_tokens_per_message: 0
+  verify_output_tokens_per_message: 0

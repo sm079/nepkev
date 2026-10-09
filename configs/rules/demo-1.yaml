@@ -1,0 +1,71 @@
+# Keyword router baseline for taxonomy demo-1. Deliberately simple and documented:
+# - each category lists cues; a cue is a string (substring match) or a list of strings (all must occur);
+# - a cue's weight is 1, or `weight` when given as {all: [...], weight: w};
+# - matching is on the lowercased message, Devanagari and Romanized cues alike;
+# - the category with the highest score wins; no match at all means "ask the customer" (clarification);
+# - `other` has no cues: the router cannot tell a clear out-of-scope request from a vague one.
+version: rules-1
+taxonomy_version: demo-1
+
+shared:
+  failed_debited: &failed_debited
+    - {all: [फेल, काट], weight: 1}
+    - {all: [एरर, काट], weight: 1}
+    - {all: [fail, kat], weight: 1}
+    - {all: [error, kat], weight: 1}
+  failed_no_debit: &failed_no_debit
+    - {all: [फेल, काटिएको छैन], weight: 2}
+    - {all: [फेल, काटेको छैन], weight: 2}
+    - {all: [एरर, काटिएको छैन], weight: 2}
+    - {all: [एरर, काटेको छैन], weight: 2}
+    - {all: [fail, chhaina], weight: 2}
+    - {all: [fail, chaina], weight: 2}
+    - {all: [fail, xaina], weight: 2}
+    - {all: [error, chhaina], weight: 2}
+    - {all: [error, xaina], weight: 2}
+  duplicate: &duplicate [दुई पटक, दुईचोटि, दुई चोटि, २ पटक, 2 पटक, तीन पटक, दोहोरो, dui patak, duichoti, dui choti, 2 patak, 2 choti, twice, 2 times, double]
+  refund: &refund [रिफन्ड, फिर्ता आएन, फिर्ता आएको छैन, refund, phirta aaena, firta aaena]
+  not_credited: &not_credited [पुगेन, पुगेको छैन, पुगेकै छैन, जम्मा भएको छैन, आएको छैन, pugena, pugeko chhaina, pugeko chaina, pugeko xaina, pugekai]
+  wrong_recipient: &wrong_recipient [गल्तीले, अर्कैको, अर्कैलाई, अर्को नम्बर, गलत नम्बर, galti, arkai, wrong number, arko number]
+  unknown_txn: &unknown_txn [नगरेको, नचिनेको, कसले गर्‍यो, कसले गर्यो, थाहै नभएको, nagareko, kasle garyo, kas le garyo, chineko chhaina]
+  login: &login [लगइन, ओटीपी, पासवर्ड, login, otp, password]
+
+domains:
+  shop:
+    order_status: [कहाँ पुग्यो, स्टाटस, स्टेटस, कहिले आउँछ, कहिले आइपुग्छ, kaha pugyo, status, kahile auchha, kahile aauchha]
+    delivery_delay_missing: [ढिलो, ढिला, हराएको, डेलिभर्ड देखा, आकै छैन, आएकै छैन, dhilo, dhila, late, haraeko, delivered dekha, aakai, aekai]
+    wrong_damaged_item: [फरक, गलत साइज, बिग्रिएको, बिग्रेको, भाँचिएको, फुटेको, च्यातिएको, pharak, farak, wrong, bigrieko, bigreko, bhachieko, phuteko, chyatieko, damage]
+    cancellation: [रद्द, क्यान्सल, क्यान्सिल, radda, cancel]
+    return_exchange: [साट्न, मन परेन, फिट भएन, एक्सचेन्ज, रिटर्न, satna, exchange, return, man parena, fit bhaena, fit vayena]
+    pending_refund: *refund
+    payment_failed_debited: *failed_debited
+    payment_failed_no_debit: *failed_no_debit
+    duplicate_debit: *duplicate
+    product_inquiry: [वारेन्टी, स्टकमा, मूल्य, कति पर्छ, पाइन्छ, warranty, stock, price, mulya, painchha]
+    other: []
+  wallet:
+    login_otp: *login
+    identity_verification: [केवाईसी, नागरिकता, भेरिफाइ, प्रमाणीकरण, kyc, verify, nagarikta]
+    transfer_not_credited: *not_credited
+    wrong_recipient: *wrong_recipient
+    payment_failed_debited: *failed_debited
+    payment_failed_no_debit: *failed_no_debit
+    duplicate_debit: *duplicate
+    pending_refund: *refund
+    bank_linking: [लिंक, लिङ्क, जोड्न, लोड, link, jodna, load]
+    withdrawal_issue: [निकालेको, निकाल्न, आफ्नै बैंक, प्रोसेसिङ, withdraw, nikaleko, nikalna, aaphnai bank, processing]
+    unexpected_transaction: *unknown_txn
+    other: []
+  bank:
+    account_access: [फ्रिज, डर्मेन्ट, रोक्का, रोकेको, freeze, dormant, rokka, rokeko]
+    digital_banking_login_otp: [लगइन, ओटीपी, पासवर्ड, मोबाइल बैंकिङ, इन्टरनेट बैंकिङ, login, otp, password, mobile banking, internet banking]
+    card_issue: [कार्ड, पिन, card, pin]
+    transfer_not_credited: *not_credited
+    wrong_recipient: *wrong_recipient
+    payment_failed_debited: *failed_debited
+    payment_failed_no_debit: *failed_no_debit
+    duplicate_debit: *duplicate
+    withdrawal_atm_issue: [एटीएम, atm]
+    unexpected_transaction: *unknown_txn
+    account_service_inquiry: [कागजात, ब्याज, खाता खोल्न, शुल्क, फिक्स्ड डिपोजिट, kagajat, byaj, khata kholna, shulka, fixed deposit, interest]
+    other: []

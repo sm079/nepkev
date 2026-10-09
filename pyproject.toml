@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nepkev"
+version = "0.1.0"
+description = "Nepali support-message router built on a fine-tuned Kev decision model"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "anthropic>=1.12.1",
+    "pydantic>=2.9",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Upstream Kev, pinned to the commit this project was built against. Pulls torch; only needed to run Kev
+# locally (training runs on a RunPod pod, which installs Kev itself).
+kev = [
+    "kev @ git+https://github.com/jaredpalmer/kev@5e42a7a03f28134853dd3ff77461457e921e5ec1",
+]
+
+# Uploading a trained checkpoint (nepkev push-hf).
+hub = [
+    "huggingface_hub>=0.30",
+]
+
+[project.scripts]
+nepkev = "nepkev.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+]
+
+[tool.setuptools.packages.find]
+include = ["nepkev*"]
+
+[tool.setuptools.package-data]
+nepkev = ["train_eval.sh"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["kev: needs the upstream kev package (uv sync --extra kev)"]

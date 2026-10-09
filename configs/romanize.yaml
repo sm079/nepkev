@@ -1,0 +1,268 @@
+# Devanagari -> Romanized Nepali as people type it on a phone, with random English mixed in.
+# Used by nepkev.romanize to derive Romanized variants of generated Devanagari messages.
+version: romanize-1
+
+# English loanwords as Nepali typists spell them in Devanagari -> their English spelling in Romanized text.
+loanwords:
+  डिक्लाइन: decline
+  भेरिफाइ: verify
+  भेरिफाई: verify
+  क्यान्सिल: cancel
+  मेसिन: machine
+  स्कुल: school
+  स्मार्ट: smart
+  वाच: watch
+  केबल: cable
+  राइस: rice
+  कुकर: cooker
+  ब्याग: bag
+  बोतल: bottle
+  रनिङ: running
+  ज्याकेट: jacket
+  प्रिमियम: premium
+  स्टेटस: status
+  लेकसाइड: lakeside
+  लकर: locker
+  क्लक: clock
+  डेलिभर: deliver
+  चेक: check
+  रोड: road
+  न्यु: new
+  साइट: site
+  फिट: fit
+  काउन्टर: counter
+  रेमिट्यान्स: remittance
+  सिम: SIM
+  वाटर: water
+  अर्जेन्ट: urgent
+  लाइट: light
+  फिस: fee
+  कन्फर्म: confirm
+  सुज: shoes
+  करेन्ट: current
+  बटन: button
+  वाल: wall
+  रु: Rs
+  नं: "no"
+  नं.: "no"
+  रू: Rs
+  अर्डर: order
+  नोटबुक: notebook
+  सेट: set
+  इयरबड्स: earbuds
+  स्क्यान: scan
+  लोड: load
+  टिभी: TV
+  सब्सक्रिप्सन: subscription
+  स्टाटस: status
+  स्टोभ: stove
+  कभर: cover
+  ट्र्याक: track
+  बिजनेस: business
+  बल्ब: bulb
+  प्याक: pack
+  चेकआउट: checkout
+  फ्रिज: freeze
+  ग्यास: gas
+  ओटीपी: OTP
+  केवाईसी: KYC
+  एटीएम: ATM
+  क्यूआर: QR
+  एसएमएस: SMS
+  पिन: PIN
+  रिफन्ड: refund
+  रिफण्ड: refund
+  पेमेन्ट: payment
+  पेमेण्ट: payment
+  वालेट: wallet
+  एप: app
+  एप्प: app
+  लगइन: login
+  पासवर्ड: password
+  एकाउन्ट: account
+  अकाउन्ट: account
+  कार्ड: card
+  डेबिट: debit
+  क्रेडिट: credit
+  ट्रान्सफर: transfer
+  ट्रान्ज्याक्सन: transaction
+  ट्रान्जेक्सन: transaction
+  ट्रान्जेक्शन: transaction
+  बैंक: bank
+  बैंकिङ: banking
+  बैंकिंग: banking
+  मोबाइल: mobile
+  इन्टरनेट: internet
+  ब्रान्च: branch
+  स्टाफ: staff
+  डेलिभरी: delivery
+  डेलिभर्ड: delivered
+  ट्र्याकिङ: tracking
+  पार्सल: parcel
+  साइज: size
+  कलर: color
+  वारेन्टी: warranty
+  बिल: bill
+  ब्यालेन्स: balance
+  स्टेटमेन्ट: statement
+  फेल: fail
+  रिजेक्ट: reject
+  पेन्डिङ: pending
+  अपलोड: upload
+  लिंक: link
+  लिङ्क: link
+  ब्लक: block
+  रिसेन्ड: resend
+  एरर: error
+  प्रोसेसिङ: processing
+  क्यान्सल: cancel
+  रिटर्न: return
+  एक्सचेन्ज: exchange
+  अफर: offer
+  क्यासब्याक: cashback
+  प्लिज: please
+  ओके: ok
+  सर्भिस: service
+  कस्टमर: customer
+  केयर: care
+  नम्बर: number
+  फोन: phone
+  डिपोजिट: deposit
+  फिक्स्ड: fixed
+  लोन: loan
+  इन्टरेस्ट: interest
+  अपडेट: update
+  कोड: code
+  डिजिट: digit
+  म्यासेज: message
+  मेसेज: message
+  एजेन्ट: agent
+  क्यास: cash
+  डर्मेन्ट: dormant
+  इनभ्यालिड: invalid
+  प्रोडक्ट: product
+  स्टक: stock
+  अनलाइन: online
+  स्पिकर: speaker
+  ब्लुटुथ: bluetooth
+  बक्स: box
+  सेलर: seller
+  रिचार्ज: recharge
+  टपअप: topup
+  सिस्टम: system
+  स्क्रिन: screen
+  सेभिङ: saving
+  सेभिङ्स: savings
+  चार्ज: charge
+  फी: fee
+  डिटेल: detail
+  रिक्वेस्ट: request
+  कम्प्लेन: complain
+  रिसिभर: receiver
+  सेन्डर: sender
+  अप्रुभ: approve
+  फारम: form
+  क्लियर: clear
+  मिनिमम: minimum
+
+# Postpositions written as separate words in Romanized text after a loanword or English word
+# (अर्डरको -> "order ko"), and after native nouns for the unambiguous ones (NATIVE_SPLIT in code).
+postpositions:
+  को: ko
+  का: ka
+  की: ki
+  मा: ma
+  बाट: bata
+  लाई: lai
+  ले: le
+  सँग: sanga
+  संग: sanga
+  देखि: dekhi
+  सम्म: samma
+  हरू: haru
+  नै: nai
+  मै: mai
+  पनि: pani
+
+# Casual contractions, applied on the Devanagari side before romanizing (each occurrence with contraction_p).
+contractions:
+  भएको: भाको
+  गएको: गाको
+  आएको: आको
+  रहेछ: रैछ
+  भयो: भो
+  होइन: हैन
+  गर्नुहोस्: गर्नुस्
+  गरिदिनुहोस्: गरिदिनुस्
+  हेर्नुहोस्: हेर्नुस्
+  मिलाइदिनुहोस्: मिलाइदिनुस्
+  गर्नुहोला: गर्नुस्
+
+# Nepali words Romanized typists often write in English. Each message draws an English level
+# (english_levels below); every listed word in it is then switched with that level's probability.
+# Postpositions follow the same rule as loanwords: खाताबाट -> "account bata".
+english:
+  तर: but
+  समस्या: problem
+  खाता: account
+  भुक्तानी: payment
+  सहयोग: help
+  छिटो: fast
+  हिजो: yesterday
+  आज: today
+  भोलि: tomorrow
+  हप्ता: week
+  महिना: month
+  गलत: wrong
+  नयाँ: new
+  फेरि: again
+  जानकारी: info
+  कृपया: please
+  धन्यवाद: thanks
+  रकम: amount
+  कारोबार: transaction
+  सन्देश: message
+  सामान: item
+  पहिला: first
+  पहिले: first
+  अझै: still
+  मात्र: only
+  सबै: all
+  किन: why
+  तुरुन्तै: urgently
+  फोटो: photo
+
+# English word -> chat abbreviation, each occurrence with abbrev_p.
+abbreviations:
+  please: [plz, pls]
+  account: [acc]
+  transaction: [txn]
+  message: [msg]
+  thanks: [thx, ty]
+  bluetooth: [bt]
+  amount: [amt]
+
+# One typist profile per message: spellings vary between messages, consistent within one.
+# Options per Devanagari sign with probabilities; the first option is the plain default.
+typist_profile:
+  छ: {chh: 0.45, ch: 0.25, x: 0.30}       # chha / cha / xa, chhaina / chaina / xaina
+  भ: {bh: 0.60, v: 0.40}                  # bhayo / vayo
+  फ: {ph: 0.60, f: 0.40}                  # phirta / firta
+  व: {b: 0.60, v: 0.25, w: 0.15}               # व्यवहार -> byabahar / vyavahar
+  श: {sh: 0.60, s: 0.40}
+  ष: {sh: 0.60, s: 0.40}
+  ी: {i: 0.85, ee: 0.15}
+  ू: {u: 0.85, oo: 0.15}
+  आ: {aa: 0.60, a: 0.40}                  # aayo / ayo
+
+probabilities:
+  contraction_p: 0.4
+  english_levels:            # share of messages : probability of switching each listed word
+    none: [0.25, 0.0]
+    light: [0.50, 0.3]
+    heavy: [0.25, 0.75]
+  shorthand_p: 0.3           # one round amount: 5000 -> 5k
+  abbrev_p: 0.5
+  lowercase_p: 0.5
+  drop_punct_p: 0.3
+  double_punct_p: 0.15

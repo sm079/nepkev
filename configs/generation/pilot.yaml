@@ -1,0 +1,75 @@
+# Clean synthetic data: ~1,000 scenarios per domain, each written once in casual Devanagari, plus a
+# code-derived Romanized twin. `name` prefixes every scenario id.
+name: pilot
+taxonomy_version: demo-1
+seed: 7
+scenarios_per_domain: 1000
+
+# Share of each domain's scenarios per difficulty family. `contrast` scenarios come in
+# counterfactual pairs that share a scenario group (both siblings always land in one split).
+family_mix:
+  single: 0.38
+  contrast: 0.20
+  negation: 0.07
+  corrected_statement: 0.05
+  irrelevant_background: 0.06
+  missing_details: 0.04          # issue identifiable, secondary details absent
+  out_of_scope: 0.07             # clear request outside the taxonomy -> fallback
+  vague: 0.06                    # clarification needed, issue unresolvable (uniform soft target)
+  multi_issue:no_priority: 0.04  # clarification needed, soft target over the named issues
+  multi_issue:stated_priority: 0.03
+
+style:
+  length: {short: 0.45, medium: 0.40, long: 0.15}
+  tone: {neutral: 0.35, polite: 0.20, frustrated: 0.25, angry: 0.10, urgent: 0.10}
+  formality: {casual: 0.88, formal: 0.12}
+
+# Share of accepted Devanagari records that get a code-derived Romanized twin (random English mixed in).
+# 1.0 gives every record a twin, a 50/50 script split. The first pilot run used 0.5; Romanized was the weaker
+# script there, so every later run uses 1.0.
+roman_share: 1.0
+
+generator:
+  provider: anthropic            # anthropic | dry_run  (env NEPKEV_GEN_PROVIDER overrides)
+  model: claude-sonnet-5-5       # env NEPKEV_GEN_MODEL overrides
+  effort: low                    # output_config.effort; rendering short messages needs little reasoning
+  scenarios_per_request: 8
+  max_tokens: 16000
+  concurrency: 4
+  max_retries: 5
+  prompt: generate_v2
+
+verifier:
+  provider: anthropic            # env NEPKEV_VERIFY_PROVIDER overrides
+  model: claude-haiku-5-5        # a different model than the generator, for independence
+  effort: low
+  messages_per_request: 20
+  max_tokens: 16000
+  concurrency: 4
+  prompt: verify_v1
+
+# Second opinion, only on messages the verifier disputes: a stronger model's verdict decides
+# them (agrees with the gold label -> accepted, otherwise rejected). Text only, no labels shown.
+adjudicator:
+  provider: anthropic
+  model: claude-sonnet-5-5
+  effort: low
+  messages_per_request: 20
+  max_tokens: 16000
+  concurrency: 4
+  prompt: verify_v1
+
+# USD per million tokens, used for cost logs and estimates. Batch mode halves these.
+prices:
+  claude-opus-5-5: {input: 4.00, output: 20.00, cache_read: 0.20, cache_write: 5.00}
+  claude-sonnet-5-5: {input: 2.00, output: 10.00, cache_read: 0.20, cache_write: 2.50}
+  claude-haiku-5-5: {input: 0.10, output: 0.50, cache_read: 0.01, cache_write: 0.125}
+
+# Rough per-request token assumptions for `nepkev estimate` (replaced by measured usage once a run exists).
+estimate:
+  system_tokens: 4500
+  user_tokens_per_scenario: 180
+  output_tokens_per_scenario: 160     # one Devanagari message + evidence + JSON overhead
+  thinking_tokens_per_request: 1200
+  verify_user_tokens_per_message: 60
+  verify_output_tokens_per_message: 45

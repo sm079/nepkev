@@ -1,0 +1,17 @@
+# App-review-style rendering of the accepted pilot scenarios (nepkev realstyle-generate). Same scenarios, labels
+# and seed as the pilot; only the prompt, the script mix and the verifier prompt differ.
+extends: pilot
+
+realstyle:
+  deva_share: 0.15                                  # 15% Devanagari, 85% Romanized, assigned within each label bucket
+  style_examples: configs/prompts/realstyle_style_examples.json   # 30 app-store reviews shown to the generator as style examples
+
+generator:
+  scenarios_per_request: 10
+  prompt: generate_realstyle_v1
+
+verifier:
+  prompt: verify_v2              # messy spelling, slang and swearing are not reasons to reject
+
+adjudicator:
+  prompt: verify_v2
