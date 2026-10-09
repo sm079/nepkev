@@ -14,6 +14,7 @@ dist/
 
 # Generated data, runs and weights
 data/
+!demo/data/
 runs/
 *.safetensors
 *.pt

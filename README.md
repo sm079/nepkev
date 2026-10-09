@@ -51,6 +51,9 @@ precision 0.96); the untouched model sends most messages to `other` (5x its shar
 
 Checkpoint: [`sm079/nepkev`](https://huggingface.co/sm079/nepkev).
 
+A static browser demo in [`demo/`](demo/README.md) runs this checkpoint client-side with ONNX Runtime Web (WebGPU,
+or CPU through WebAssembly): preset test messages, your own messages and the raw request and response.
+
 ## Setup
 
 ```bash

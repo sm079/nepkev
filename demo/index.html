@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nepkev router</title>
+<meta name="description" content="Route Nepali support messages in the browser with a fine-tuned Kev decision model. No text generation: one forward pass per question, a probability for every option.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script>
+  // multi-threaded CPU inference needs cross-origin isolation; coi-sw.js adds the headers static hosts cannot set
+  (function () {
+    if (self.crossOriginIsolated || !("serviceWorker" in navigator) || !window.isSecureContext) return;
+    var key = "nepkev-coi-reload", tried = false;
+    try { tried = sessionStorage.getItem(key) === "1"; } catch (e) {}
+    navigator.serviceWorker.register("coi-sw.js").then(function () {
+      return navigator.serviceWorker.ready;
+    }).then(function () {
+      if (tried) return;                     // reloaded once already: the browser does not isolate, carry on single-threaded
+      try { sessionStorage.setItem(key, "1"); } catch (e) { return; }
+      location.reload();
+    }).catch(function () {});
+  })();
+</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c2410c'/%3E%3Cpath d='M9 22V10l7 7 7-7v12' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8"/><path d="M9 22V10l7 7 7-7v12"/></svg>
+    </span>
+    <div>
+      <h1>nepkev router</h1>
+      <p class="tag">Nepali support messages → typed decisions, in your browser</p>
+    </div>
+  </div>
+  <div class="model" id="model">
+    <div class="status" id="status"><span class="dot"></span><span id="status-text">Model not loaded</span></div>
+    <div class="model-controls">
+      <label class="field">Backend
+        <select id="backend">
+          <option value="auto">Auto</option>
+          <option value="webgpu">WebGPU</option>
+          <option value="wasm">CPU (WASM)</option>
+        </select>
+      </label>
+      <label class="field">Weights <select id="variant"></select></label>
+      <button id="load" class="btn primary">Load model</button>
+    </div>
+    <div class="progress" id="progress" hidden><div class="bar" id="progress-bar"></div></div>
+  </div>
+</header>
+
+<main>
+  <section class="intro">
+    <p>
+      This is <a id="repo-link" href="https://huggingface.co/sm079/nepkev" target="_blank" rel="noopener">Kev-0.8B fine-tuned for Nepali support routing</a>.
+      It does not write an answer. You give it a <b>state</b> (the customer's message) and <b>typed questions</b>;
+      each question is one forward pass that scores every option you offered, so the result is a probability per
+      option. It can't invent a category or return broken JSON.
+    </p>
+    <ul class="facts">
+      <li><b>choice</b> which team gets the ticket (11 categories per service)</li>
+      <li><b>noul</b> does the agent have to ask a follow-up first?</li>
+      <li><b>0</b> output tokens. Everything runs on this device.</li>
+    </ul>
+  </section>
+
+  <div class="grid">
+    <!-- state -->
+    <section class="panel" aria-labelledby="state-h">
+      <div class="panel-head">
+        <h2 id="state-h">State</h2>
+        <div class="seg" id="domains" role="tablist" aria-label="Service"></div>
+      </div>
+      <label for="message" class="sr">Customer message</label>
+      <textarea id="message" rows="5" spellcheck="false" placeholder="Paste or type a customer message in Nepali (Devanagari or Romanized)…"></textarea>
+      <div class="msg-foot">
+        <span id="tokens" class="muted"></span>
+        <span class="kbd-hint muted"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
+        <button id="route" class="btn primary" disabled>Route</button>
+      </div>
+
+      <h3 class="sub">Presets <span class="muted">held-out test messages, never trained on</span></h3>
+      <div class="presets" id="presets"></div>
+
+      <details class="extra" id="extra">
+        <summary>Ask your own questions <span class="muted">(each one adds a forward pass)</span></summary>
+        <p class="muted small">The router was fine-tuned on the two questions above. Kev still answers others; how well depends on the question.</p>
+        <div id="extra-list"></div>
+        <form id="extra-form" class="extra-form">
+          <select id="extra-type" aria-label="Question type">
+            <option value="noul">yes / no</option>
+            <option value="choice">choice</option>
+          </select>
+          <input id="extra-q" placeholder="Is the customer angry?" aria-label="Question">
+          <input id="extra-opts" placeholder="options, comma separated" aria-label="Options" hidden>
+          <button class="btn" type="submit">Add</button>
+        </form>
+      </details>
+    </section>
+
+    <!-- decisions -->
+    <section class="panel" aria-labelledby="dec-h">
+      <div class="panel-head">
+        <h2 id="dec-h">Decisions</h2>
+        <div class="seg small" role="tablist" aria-label="View">
+          <button class="on" data-view="cards" role="tab" aria-selected="true">Answers</button>
+          <button data-view="json" role="tab" aria-selected="false">Raw JSON</button>
+        </div>
+      </div>
+      <div id="empty" class="empty">
+        <p>Load the model, pick a preset or type a message, then <b>Route</b>.</p>
+      </div>
+      <div id="cards" hidden></div>
+      <div id="json" hidden>
+        <div class="json-cols">
+          <div><h4>request</h4><pre id="json-req"></pre></div>
+          <div><h4>response</h4><pre id="json-res"></pre></div>
+        </div>
+      </div>
+      <div id="timing" class="timing" hidden></div>
+
+      <div class="smart" id="smart" hidden>
+        <div class="smart-head">
+          <h3>As a smart <code>if</code></h3>
+          <label class="slider">route when confidence ≥ <output id="conf-out">0.60</output>
+            <input type="range" id="conf" min="0" max="1" step="0.05" value="0.6"></label>
+          <label class="slider">ask when p(clarify) ≥ <output id="clar-out">0.50</output>
+            <input type="range" id="clar" min="0" max="1" step="0.05" value="0.5"></label>
+        </div>
+        <pre class="code" id="code"></pre>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel batch" aria-labelledby="batch-h">
+    <div class="panel-head">
+      <h2 id="batch-h">Run every preset</h2>
+      <div class="batch-controls">
+        <select id="batch-scope" aria-label="Which presets">
+          <option value="domain">this service</option>
+          <option value="all">all services</option>
+        </select>
+        <button id="batch" class="btn" disabled>Run</button>
+      </div>
+    </div>
+    <p class="muted small" id="batch-summary">Each message is routed one after another with both questions, the way a backend would call it in a loop.</p>
+    <div class="table-wrap"><table id="batch-table" hidden>
+      <thead><tr><th>message</th><th>expected</th><th>predicted</th><th class="num">conf.</th><th class="num">clarify</th><th class="num">ms</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section class="how">
+    <h2>How it works</h2>
+    <ol>
+      <li>Every question becomes one token row: <code>&lt;state&gt; message &lt;q&gt; instruction &lt;opt&gt; option &lt;/opt&gt; … &lt;decide&gt;</code>. The instructions and option descriptions are English; only the message is Nepali.</li>
+      <li>The backbone (Qwen3.5-0.8B with the fine-tuned LoRA merged in, exported to ONNX) runs the row once. No tokens are generated.</li>
+      <li>A pointer head compares the hidden state at <code>&lt;decide&gt;</code> with the hidden state at every <code>&lt;/opt&gt;</code>. A softmax over those scores, at the calibration temperature, gives the probabilities.</li>
+    </ol>
+    <p class="muted small" id="footnote"></p>
+  </section>
+</main>
+
+<footer class="muted small">
+  Demo taxonomy, not any real institution's. The router only routes: it does not resolve transactions or verify anyone.
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

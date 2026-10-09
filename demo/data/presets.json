@@ -1,0 +1,419 @@
+[
+  {
+    "id": "pilot-shop-00201-deva",
+    "domain": "shop",
+    "message": "अर्डर नं ३१०७९ को रिफन्ड रु ३००० आउँछ भनिएको थियो, ३ दिन भइसक्यो तर अझै खातामा आएको छैन। कृपया छिटो हेरिदिनुहोला।",
+    "script": "deva",
+    "origin": "clean",
+    "family": "single",
+    "issue": "pending_refund",
+    "issues_all": [
+      "pending_refund"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-shop-00228-roman",
+    "domain": "shop",
+    "message": "hajur, euta gas stove kinna khojeko thie. tyo ahile stock ma chha ki chhaina hai? kati barsha ko warranty auchha ra dui barnar bhaeko ho ki euta only, ali bataidinu na. ani mulya ma kehi chhut milchha ki? dhanyabad hai.",
+    "script": "roman",
+    "origin": "translated",
+    "family": "single",
+    "issue": "product_inquiry",
+    "issues_all": [
+      "product_inquiry"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-shop-00229-rs-roman",
+    "domain": "shop",
+    "message": "hello, maile order no 34813 ko order garya thiyo tara aba mailai chaidaina. abhi samma deliver bhako chaina ra ma yo order cancel garna chahanchu. please cancel gardinu na, kasari garne ho bhanera pani bhanidinu. delivery nahune bhanera confirm garnu hola.",
+    "script": "roman",
+    "origin": "app-review",
+    "family": "single",
+    "issue": "cancellation",
+    "issues_all": [
+      "cancellation"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-shop-00007-deva",
+    "domain": "shop",
+    "message": "अर्डर नं ९४७३२ क्यान्सल गर्नु थियो। अझै मेरोमा सामान आइपुगेको छैन। डेलिभरी हुनुअघि नै रद्द गरिदिनुस् न",
+    "script": "deva",
+    "origin": "clean",
+    "family": "contrast:cancellation/return_exchange",
+    "issue": "cancellation",
+    "issues_all": [
+      "cancellation"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-shop-00582-roman",
+    "domain": "shop",
+    "message": "order 64574 ko item ferne va firta garne kura haina, item ta thikai chha. refund Rs 702 aauchha vaneko 4 din vo, paisa aaekai chhaina!! aba kati kurnu??",
+    "script": "roman",
+    "origin": "translated",
+    "family": "negation",
+    "issue": "pending_refund",
+    "issues_all": [
+      "pending_refund"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-shop-00663-deva",
+    "domain": "shop",
+    "message": "सामान नै आएन भन्ने होइन, सामान त फिर्ता गरिसकेको हुँ। अर्डर ४६९५२ को रिफन्ड रु ४१,००० स्वीकृत भएको थियो, १३ दिन भइसक्दा पनि प्राप्त भएको छैन। कृपया तुरुन्त मिलाइदिनुहोला।",
+    "script": "deva",
+    "origin": "clean",
+    "family": "corrected_statement",
+    "issue": "pending_refund",
+    "issues_all": [
+      "pending_refund"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-shop-00973-rs-roman",
+    "domain": "shop",
+    "message": "order 48266 ma Rs 9775 duita choti kateko xa, pahile yo milaidinu na. earbuds chai pachi return garne ho, tyo ali pachi herum, aile paisa ko problem solve garnu paryo.",
+    "script": "roman",
+    "origin": "app-review",
+    "family": "multi_issue:stated_priority",
+    "issue": "duplicate_debit",
+    "issues_all": [
+      "return_exchange",
+      "duplicate_debit"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-shop-00802-deva",
+    "domain": "shop",
+    "message": "तपाईंहरूको सेलरले फोनमा एकदमै नराम्रो तरिकाले कुरा गर्‍यो, यस्तो व्यवहार ठीक हैन!!",
+    "script": "deva",
+    "origin": "clean",
+    "family": "out_of_scope",
+    "issue": "other",
+    "issues_all": [],
+    "clarification": false
+  },
+  {
+    "id": "pilot-shop-00811-rs-roman",
+    "domain": "shop",
+    "message": "Namaste, tapai haru ko seller le message ma ramro sanga kura garenan, tyo ko barema kripaya herdinu hola.",
+    "script": "roman",
+    "origin": "app-review",
+    "family": "out_of_scope",
+    "issue": "other",
+    "issues_all": [],
+    "clarification": false
+  },
+  {
+    "id": "pilot-shop-00882-roman",
+    "domain": "shop",
+    "message": "plz mero kura sunnuhola. malai yaha euta samasya pareko chha ra ma nikai jhijo maniraheko chhu. katipatak sochda pani ke garne vanne kura maile bujhna sakeko chhaina. ma ahile alamal ma chhu. kripaya yas ma fast help garnus.",
+    "script": "roman",
+    "origin": "translated",
+    "family": "vague",
+    "issue": null,
+    "issues_all": [],
+    "clarification": true
+  },
+  {
+    "id": "pilot-shop-00947-deva",
+    "domain": "shop",
+    "message": "कुर्ता अर्डर गरेको थिएँ, अर्डर नं १३६८३। आएको कुर्ता साइज अर्कै छ र अलि च्यातिएको जस्तो पनि छ। अनि त्यही अर्डर क्यान्सल पनि गर्न मिल्छ कि? के गर्ने हजुर",
+    "script": "deva",
+    "origin": "clean",
+    "family": "multi_issue:no_priority",
+    "issue": null,
+    "issues_all": [
+      "wrong_damaged_item",
+      "cancellation"
+    ],
+    "clarification": true
+  },
+  {
+    "id": "pilot-wallet-00217-deva",
+    "domain": "wallet",
+    "message": "वालेटको केवाईसी रिजेक्ट भएछ। कागजात हालेको ८ दिन भइसक्यो, अझै खाता चल्दैन। अब के गर्ने?",
+    "script": "deva",
+    "origin": "clean",
+    "family": "single",
+    "issue": "identity_verification",
+    "issues_all": [
+      "identity_verification"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-wallet-00237-roman",
+    "domain": "wallet",
+    "message": "eutai payment garda rs 1k dui patak katiechha ek patak matra gareko thie tara wallet ko histri ma duivata dekhauchha euta paisa firta garidinu na pahile pani yastai bhaeko thiyo aba ta vakka lagyo chhito milaidinus hai",
+    "script": "roman",
+    "origin": "translated",
+    "family": "single",
+    "issue": "duplicate_debit",
+    "issues_all": [
+      "duplicate_debit"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-wallet-00238-rs-roman",
+    "domain": "wallet",
+    "message": "2 din bho KYC reject bhayo bhanera aayo, document ta sahi nai halya thiye. kina reject garcha yar, k milena bhanera ni bhanya xaina. yesto ma kasari use garne??",
+    "script": "roman",
+    "origin": "app-review",
+    "family": "single",
+    "issue": "identity_verification",
+    "issues_all": [
+      "identity_verification"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-wallet-00029-deva",
+    "domain": "wallet",
+    "message": "बीमा प्रिमियम तिर्दा एरर देखायो तर 52000 वालेटबाट काटिसक्यो!! पैसा गयो, पेमेन्ट चाहिँ भएन",
+    "script": "deva",
+    "origin": "clean",
+    "family": "contrast:payment_failed_debited/payment_failed_no_debit",
+    "issue": "payment_failed_debited",
+    "issues_all": [
+      "payment_failed_debited"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-wallet-00583-roman",
+    "domain": "wallet",
+    "message": "kyc ko kura haina tyo thikai cha, tara sathiko phone bata login garna khojda otp nai audaina!!! ke garne yar",
+    "script": "roman",
+    "origin": "translated",
+    "family": "negation",
+    "issue": "login_otp",
+    "issues_all": [
+      "login_otp"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-wallet-00679-deva",
+    "domain": "wallet",
+    "message": "एप खुल्दैन भनेको होइन, नयाँ फोनमा लगइन गर्दा ओटीपी आएको छैन",
+    "script": "deva",
+    "origin": "clean",
+    "family": "corrected_statement",
+    "issue": "login_otp",
+    "issues_all": [
+      "login_otp"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-wallet-00975-rs-deva",
+    "domain": "wallet",
+    "message": "नमस्ते, मैले साथीलाई ४०० पठाएको २ घण्टा भयो wallet बाट कटेको छ तर उसले पाएन, पहिला यो हेरिदिनु होला please। इन्टरनेट बिल तिर्दा पनि फेल भयो तर पैसा कटेको छैन, त्यो पछि हेरौँला।",
+    "script": "deva",
+    "origin": "app-review",
+    "family": "multi_issue:stated_priority",
+    "issue": "transfer_not_credited",
+    "issues_all": [
+      "payment_failed_no_debit",
+      "transfer_not_credited"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-wallet-00804-deva",
+    "domain": "wallet",
+    "message": "मलाई यो वालेट चाहिँदैन, खाता डिलिट गरिदिनु न छिटो!!",
+    "script": "deva",
+    "origin": "clean",
+    "family": "out_of_scope",
+    "issue": "other",
+    "issues_all": [],
+    "clarification": false
+  },
+  {
+    "id": "pilot-wallet-00817-rs-roman",
+    "domain": "wallet",
+    "message": "hajur, mero wallet account permanently delete garnu xa. ek duita wota wallet bhako le euta chai hataunu parne vayo. process k ho bhanidinu hola, dhanyabad",
+    "script": "roman",
+    "origin": "app-review",
+    "family": "out_of_scope",
+    "issue": "other",
+    "issues_all": [],
+    "clarification": false
+  },
+  {
+    "id": "pilot-wallet-00871-roman",
+    "domain": "wallet",
+    "message": "hajur, euta problem aeko xa, fast maddat garnus na! dherai atyabasyak xa. turuntai heridinus hai",
+    "script": "roman",
+    "origin": "translated",
+    "family": "vague",
+    "issue": null,
+    "issues_all": [],
+    "clarification": true
+  },
+  {
+    "id": "pilot-wallet-00932-deva",
+    "domain": "wallet",
+    "message": "बैंक खाता वालेटमा लिंक गर्न खोज्दा लिंक नै हुँदैन, लोड पनि गर्न मिलेन। अनि बिजुलीको बिल तिर्दा एरर आयो तर रु 3200 चाहिँ काटिसकेछ। दुवै हेरिदिनु न",
+    "script": "deva",
+    "origin": "clean",
+    "family": "multi_issue:no_priority",
+    "issue": null,
+    "issues_all": [
+      "bank_linking",
+      "payment_failed_debited"
+    ],
+    "clarification": true
+  },
+  {
+    "id": "pilot-bank-00218-deva",
+    "domain": "bank",
+    "message": "आज बिहान खाताबाट ६३७० रुपैयाँ गएको देखियो। मैले त्यस्तो कुनै पैसा तिरेको वा पठाको छैन, को ले निकाल्यो थाहा छैन।",
+    "script": "deva",
+    "origin": "clean",
+    "family": "single",
+    "issue": "unexpected_transaction",
+    "issues_all": [
+      "unexpected_transaction"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-bank-00222-roman",
+    "domain": "bank",
+    "message": "aaj bihan 2880 khata bata gayo maile kehi garekai chhaina yo kas le garyo",
+    "script": "roman",
+    "origin": "translated",
+    "family": "single",
+    "issue": "unexpected_transaction",
+    "issues_all": [
+      "unexpected_transaction"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-bank-00241-rs-roman",
+    "domain": "bank",
+    "message": "ma le 1900 pathauda account number ek digit galat hanideko raichha, arkai manche ko account ma gayo. mero galti ho tara aba k garne?? paisa pheri ayo ki nai bhanera sodhna aako, kasari phirta paaincha",
+    "script": "roman",
+    "origin": "app-review",
+    "family": "single",
+    "issue": "wrong_recipient",
+    "issues_all": [
+      "wrong_recipient"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-bank-00001-deva",
+    "domain": "bank",
+    "message": "इन्टरनेट बैंकिङमा लगइन गर्न खोज्दा पासवर्ड मिलेन भन्छ। खातामा चाहिँ केही समस्या छैन, काउन्टरमा गए काम हुन्छ होला। बस इन्टरनेट बैंकिङ खुल्दैन।",
+    "script": "deva",
+    "origin": "clean",
+    "family": "contrast:digital_banking_login_otp/account_access",
+    "issue": "digital_banking_login_otp",
+    "issues_all": [
+      "digital_banking_login_otp"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-bank-00584-roman",
+    "domain": "bank",
+    "message": "galat khata ma pathaeko haina number thikai ho tara Rs 300 pathaeko 3 ghanta bhayo khata bata katyo tara utako ma pugeko chhaina heridinuhola hai",
+    "script": "roman",
+    "origin": "translated",
+    "family": "negation",
+    "issue": "transfer_not_credited",
+    "issues_all": [
+      "transfer_not_credited"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-bank-00659-deva",
+    "domain": "bank",
+    "message": "लगइन मिलेन भनेको होइन, खाता नै डर्मेन्ट भएछ, शाखामा पनि चलाउन दिएनन्। मिलाइदिनुस् न प्लिज",
+    "script": "deva",
+    "origin": "clean",
+    "family": "corrected_statement",
+    "issue": "account_access",
+    "issues_all": [
+      "account_access"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-bank-00989-rs-roman",
+    "domain": "bank",
+    "message": "urgent xa! debit card le payment garna khojda decline bhayo, paisa chai katena. pahila yo fix garidinu plz, kina bhane bill aaja nai tirnu parne xa. ani 49000 transfer garya 24 ghanta bhayo account bata gayo tara tyo manxe lai pugena, tyo pachi herum ta",
+    "script": "roman",
+    "origin": "app-review",
+    "family": "multi_issue:stated_priority",
+    "issue": "payment_failed_no_debit",
+    "issues_all": [
+      "transfer_not_credited",
+      "payment_failed_no_debit"
+    ],
+    "clarification": false
+  },
+  {
+    "id": "pilot-bank-00804-deva",
+    "domain": "bank",
+    "message": "बैंकको शाखा बिहान कति बजे खुल्छ है? जानकारी दिनुस् न प्लिज",
+    "script": "deva",
+    "origin": "clean",
+    "family": "out_of_scope",
+    "issue": "other",
+    "issues_all": [],
+    "clarification": false
+  },
+  {
+    "id": "pilot-bank-00814-rs-roman",
+    "domain": "bank",
+    "message": "Hajur, maile business loan ko form bhareko thiye gayo hapta. Aile samma mero loan application ko status k xa bhanera jannu thiyo. Approve vayo ki aru document chahinxa?",
+    "script": "roman",
+    "origin": "app-review",
+    "family": "out_of_scope",
+    "issue": "other",
+    "issues_all": [],
+    "clarification": false
+  },
+  {
+    "id": "pilot-bank-00871-roman",
+    "domain": "bank",
+    "message": "hajur kehi gadabad bhako xa ke bhako ho malai pani bujhna gahro xa sahayog garidinu na please",
+    "script": "roman",
+    "origin": "translated",
+    "family": "vague",
+    "issue": null,
+    "issues_all": [],
+    "clarification": true
+  },
+  {
+    "id": "pilot-bank-00954-deva",
+    "domain": "bank",
+    "message": "राति 2 बजे क्रेडिट कार्डबाट 49000 को कारोबार भएको रैछ, मैले गरेकै हैन। कार्ड पनि चलेन, दुवै हेरिदिनुस् न प्लिज",
+    "script": "deva",
+    "origin": "clean",
+    "family": "multi_issue:no_priority",
+    "issue": null,
+    "issues_all": [
+      "unexpected_transaction",
+      "card_issue"
+    ],
+    "clarification": true
+  }
+]
