@@ -2,6 +2,7 @@
 
 All runs fine-tune Kev-0.8B (`jaredpalmer/kev-0.8b@9a45d25`) on one RTX 4090 RunPod pod. Every number below is on
 **generated test data**, re-scored with the current `nepkev evaluate`. External records are never scored.
+Results on real app reviews are in [real-text.md](real-text.md).
 
 Test sets: the pilot has its own split (467 records). mix-v1, mix-v2 and the mix-v3 runs share the same 598 clean
 test records (same scenarios, seed and split); the mix-v3 test adds 291 app-review-style records (254 Romanized, 37

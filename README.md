@@ -49,6 +49,10 @@ test set (issue accuracy):
 All bias checks pass for the fine-tuned model (no category over-predicted, `other` predicted 1.03x its true share with
 precision 0.96); the untouched model sends most messages to `other` (5x its share) and asks to clarify almost always.
 
+On real Nepali app reviews (215 scored, labels from an LLM, not human-checked) the same model gets 0.600 issue
+accuracy [0.535, 0.660], against 0.237 untouched and 0.335 for the rules. Most errors send a real problem to `other`
+or swap one money category for another. Details in [docs/real-text.md](docs/real-text.md).
+
 Checkpoint: [`sm079/nepkev`](https://huggingface.co/sm079/nepkev).
 
 A static browser demo in [`demo/`](demo/README.md) runs this checkpoint client-side with ONNX Runtime Web (WebGPU,
@@ -183,6 +187,7 @@ docs/                              results and findings, taxonomy notes
 
 ## Limitations
 
+- Real reviews score far lower than generated test data (0.600 vs 0.966); see [docs/real-text.md](docs/real-text.md).
 - Generated messages always describe their problem clearly, because the prompt requires it. People often write half a
   complaint; the app-review-style data copies the surface of such text, not that vagueness.
 - The app-review-style data was made in a limited way. Its style came from only 30 example reviews, a small fraction
