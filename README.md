@@ -17,8 +17,8 @@ each one as a message, and a second model checks every label from the text alone
 The router runs behind an HTTP API (FastAPI, Postgres, Docker). The same API answers customers' questions from a small
 knowledge base, citing only text it retrieved (RAG).
 
-**Checkpoint** [sm079/nepkev](https://huggingface.co/sm079/nepkev) · **Browser demo** [`demo/`](demo/README.md)
-(runs on the client, WebGPU or CPU) · **API and setup** [docs/usage.md](docs/usage.md) ·
+**Checkpoint** [sm079/nepkev](https://huggingface.co/sm079/nepkev) · **Browser demo** [sm079.github.io/nepkev](https://sm079.github.io/nepkev/)
+(runs on the client, WebGPU or CPU; about 700 MB on first load) · **API and setup** [docs/usage.md](docs/usage.md) ·
 **RAG** [docs/rag.md](docs/rag.md)
 
 ## Results
