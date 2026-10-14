@@ -86,8 +86,8 @@ docker compose up --build        # Postgres, a one-shot migration, the API on :8
 curl localhost:8000/ready        # 503 while the model loads, then {"ready":true,...}
 ```
 
-The first start downloads the pinned checkpoint and its base model (about 2 GB) into a volume; with a cold cache the
-API was ready after about 2.5 minutes, and after about 40 seconds on later starts.
+The first start downloads the pinned checkpoint and its base model (about 2 GB) into a volume; two cold starts took 2.5
+and 7 minutes to become ready, mostly downloading. Later starts only load the model (about 40 seconds).
 
 ```bash
 curl -X POST localhost:8000/route -H 'Content-Type: application/json' \
