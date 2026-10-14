@@ -78,14 +78,18 @@ def test_stats_counts_routed_requests(client):
 
 def test_ready_when_model_and_database_are_up(client):
     r = client.get("/ready")
-    assert r.status_code == 200 and r.json() == {"ready": True, "model": "ready", "database": "ok"}
+    assert r.status_code == 200 and r.json() == {"ready": True, "model": "ready", "database": "ok", "answer": "disabled"}
 
 
 def test_not_ready_when_the_database_is_down(settings):
     with TestClient(create_app(settings.model_copy(update={"database_url": UNREACHABLE_DB}), router=StubRouter())) as c:
         r = c.get("/ready")
         assert c.get("/health").status_code == 200   # still alive
-    assert r.status_code == 503 and r.json() == {"ready": False, "model": "ready", "database": "unreachable"}
+    assert r.status_code == 503 and r.json() == {"ready": False, "model": "ready", "database": "unreachable", "answer": "disabled"}
+
+
+def no_answerer(_settings):
+    raise app_module.Unavailable("off in this test")
 
 
 def test_model_loads_in_the_background_and_ready_follows_it(settings, engine, monkeypatch):
@@ -96,6 +100,7 @@ def test_model_loads_in_the_background_and_ready_follows_it(settings, engine, mo
         return stub
 
     monkeypatch.setattr(app_module, "kev_router", slow_load)
+    monkeypatch.setattr(app_module, "rag_answerer", no_answerer)
     with TestClient(create_app(settings)) as c:
         loading = c.get("/ready")
         busy = c.post("/route", json={"text": "hello"})
@@ -114,9 +119,10 @@ def test_failed_model_load_is_reported(settings, engine, monkeypatch):
         raise OSError("weights not found")
 
     monkeypatch.setattr(app_module, "kev_router", broken)
+    monkeypatch.setattr(app_module, "rag_answerer", no_answerer)
     with TestClient(create_app(settings)) as c:
         wait_for(lambda: c.app.state.model.status != "loading")
         r = c.get("/ready")
         routed = c.post("/route", json={"text": "hello"})
     assert r.status_code == 503 and r.json()["model"] == "failed"
-    assert routed.status_code == 503 and routed.json()["detail"] == "model failed"
+    assert routed.status_code == 503 and routed.json()["detail"] == "model failed: OSError: weights not found"

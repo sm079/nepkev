@@ -67,7 +67,7 @@ def test_overlong_key_is_rejected(client, stub):
 
 def test_replay_works_while_the_model_is_unavailable(client, stub):
     stored = post(client).json()
-    client.app.state.model.router = None
+    client.app.state.model.value = None
     assert post(client).json() == stored
     assert client.post("/route", json=BODY).status_code == 503
 

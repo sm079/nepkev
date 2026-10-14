@@ -53,6 +53,41 @@ class StatsOut(BaseModel):
 
 
 class ReadyOut(BaseModel):
-    ready: bool
+    ready: bool = Field(description="Model loaded and database reachable: /route can serve")
     model: Literal["loading", "ready", "failed"]
     database: Literal["ok", "unreachable"]
+    answer: Literal["loading", "ready", "failed", "disabled"] = Field(description="Whether /answer can serve")
+
+
+class AnswerIn(BaseModel):
+    model_config = ConfigDict(extra="forbid", json_schema_extra={
+        "examples": [{"text": "KYC submit gareko kati din ma verify huncha?", "channel": "wallet"}]})
+
+    text: Message = Field(description="The customer's question (1-2,000 characters)")
+    channel: Channel | None = Field(None, description="Support inbox; retrieval only reads this domain's articles")
+
+
+class CitationOut(BaseModel):
+    chunk_id: str
+    doc_id: str
+    quote: str = Field(description="Verbatim text of the cited chunk")
+
+
+class ScoreOut(BaseModel):
+    chunk_id: str
+    doc_id: str
+    score: float = Field(description="Cosine similarity to the question")
+
+
+class AnswerOut(BaseModel):
+    request_id: str
+    channel: Channel
+    intent: str
+    answer: str = Field(description="The answer, or a fixed refusal message when refused")
+    citations: list[CitationOut]
+    refused: bool
+    refusal_reason: Literal["low_similarity", "model_declined", "no_valid_citation"] | None
+    retrieval_scores: list[ScoreOut]
+    prompt_version: str
+    answer_model: str
+    latency_ms: dict[str, float] = Field(description="route, retrieve, generate (when the model ran) and total")

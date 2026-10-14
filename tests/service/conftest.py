@@ -1,4 +1,5 @@
-"""API test setup: a stub router (no model, no downloads) and a real Postgres migrated with Alembic.
+"""API and database test setup: a stub router, a hashing embedder and a scripted answer model (no models, no
+downloads, no API calls) and a real Postgres migrated with Alembic.
 
 Set NEPKEV_TEST_DATABASE_URL (e.g. postgresql+psycopg://nepkev:nepkev@localhost:5432/nepkev_test) to run the tests
 that need a database; they are skipped without it. The database's tables are dropped and re-created.
@@ -6,7 +7,9 @@ that need a database; they are skipped without it. The database's tables are dro
 
 from __future__ import annotations
 
+import hashlib
 import os
+import re
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -19,7 +22,11 @@ from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import Engine, text  # noqa: E402
 
+import numpy as np  # noqa: E402
+
 from nepkev import ROOT  # noqa: E402
+from nepkev.rag.llm import Draft  # noqa: E402
+from nepkev.rag.store import EMBED_DIM, Hit  # noqa: E402
 from nepkev.router import Routing  # noqa: E402
 from nepkev.service.app import create_app  # noqa: E402
 from nepkev.service.db import make_engine  # noqa: E402
@@ -53,6 +60,44 @@ class StubRouter:
         return Routing(domain=domain, issue={c: top.get(c, rest) for c in cats}, clarification=clarification)
 
 
+class HashEmbedder:
+    """Bag of lowercased words hashed into EMBED_DIM buckets, L2-normalised: shared words mean high similarity."""
+    name, dim = "test/hash-embedder", EMBED_DIM
+
+    def __init__(self):
+        self.calls = 0
+
+    def _vec(self, text: str) -> np.ndarray:
+        v = np.zeros(self.dim, dtype=np.float32)
+        for w in re.findall(r"\w+", text.lower()):
+            v[int(hashlib.md5(w.encode()).hexdigest(), 16) % self.dim] += 1
+        n = np.linalg.norm(v)
+        return v / n if n else v
+
+    def embed_queries(self, texts: list[str]) -> np.ndarray:
+        return np.stack([self._vec(t) for t in texts])
+
+    def embed_passages(self, texts: list[str]) -> np.ndarray:
+        self.calls += len(texts)
+        return np.stack([self._vec(t) for t in texts])
+
+
+class ScriptedModel:
+    """Answers with the first sentence of the best chunk, quoted; `reply` overrides the next draft."""
+    name, prompt_version = "test/scripted", "answer_v1"
+
+    def __init__(self):
+        self.calls: list[tuple[str, list[Hit], str]] = []
+        self.reply: Draft | None = None
+
+    def draft(self, question: str, hits: list[Hit], service: str) -> Draft:
+        self.calls.append((question, hits, service))
+        if self.reply is not None:
+            return self.reply
+        first = re.split(r"(?<=[.।])\s", hits[0].text)[0]
+        return Draft(answer=f"Answer: {first}", citations=[(hits[0].chunk_id, first)], refused=False)
+
+
 def migrate(url: str, revision: str = "head") -> None:
     cfg = Config(str(Path(ROOT) / "alembic.ini"), attributes={"configure_logger": False})
     cfg.set_main_option("sqlalchemy.url", url)
@@ -79,7 +124,7 @@ def db_url() -> str:
 def engine(db_url) -> Iterator[Engine]:
     eng = make_engine(db_url)
     with eng.begin() as conn:
-        conn.execute(text("TRUNCATE route_requests RESTART IDENTITY"))
+        conn.execute(text("TRUNCATE route_requests, kb_chunks RESTART IDENTITY"))
     yield eng
     eng.dispose()
 
