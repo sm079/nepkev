@@ -116,7 +116,7 @@ def main() -> None:
     other = (run if same else Runner(args.ref_model, args.head, args.provider)) if args.ref_model and fresh else None
     have_ref = bool(cache) or other is not None
     ref = {(r["id"], r["question"]): np.array(r["p"]) for r in json.loads(args.rows.read_text(encoding="utf-8"))} if args.rows else {}
-    reqs = [json.loads(l) for l in args.kev.read_text(encoding="utf-8").splitlines() if l.strip()]
+    reqs = [json.loads(raw) for raw in args.kev.read_text(encoding="utf-8").splitlines() if raw.strip()]
     step = max(1, len(reqs) // args.n)
     picked = list(range(0, len(reqs), step))[: args.n]
 
@@ -125,7 +125,9 @@ def main() -> None:
     for done, line in enumerate(picked, 1):
         req = reqs[line]
         for q in questions(req):
-            t0 = time.perf_counter(); p = run.probs(req["state"], q); t += time.perf_counter() - t0
+            t0 = time.perf_counter()
+            p = run.probs(req["state"], q)
+            t += time.perf_counter() - t0
             n_q += 1
             key = f"{line}/{q['id']}"
             if other is not None:
@@ -137,7 +139,8 @@ def main() -> None:
                     stats[name][1] += int(p.argmax() != rp.argmax())
             src = req["questions"][q["id"]]
             if q["id"] == "q1" and src.get("target") is None:
-                scored += 1; correct += int(q["keys"][int(p.argmax())] == src["label"])
+                scored += 1
+                correct += int(q["keys"][int(p.argmax())] == src["label"])
                 if refs["ref-model"] is not None:
                     ref_correct += int(q["keys"][int(refs["ref-model"].argmax())] == src["label"])
         if done % 20 == 0 or done == len(picked):
