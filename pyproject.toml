@@ -32,10 +32,18 @@ hub = [
 service = [
     "alembic>=1.14",
     "fastapi>=0.115",
+    "numpy>=2",
+    "pgvector>=0.3.6",
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2.6",
     "sqlalchemy>=2.0.36",
     "uvicorn[standard]>=0.32",
+]
+
+# Local embedding models for nepkev.rag (ingest, retrieval, eval). The API needs it to answer with /answer.
+rag = [
+    "torch>=2.6,<2.9",
+    "transformers>=5.17,<6",
 ]
 
 [project.scripts]
@@ -74,7 +82,8 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["nepkev.service", "nepkev.router"]
+source = ["nepkev.service", "nepkev.router", "nepkev.rag"]
+omit = ["*/nepkev/rag/compare.py"]   # a one-off model comparison that needs the real models
 
 [tool.ruff]
 line-length = 120

@@ -819,9 +819,16 @@ kev = [
     { name = "torch", version = "2.8.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'darwin'" },
     { name = "torch", version = "2.8.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform != 'darwin'" },
 ]
+rag = [
+    { name = "torch", version = "2.8.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'darwin'" },
+    { name = "torch", version = "2.8.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform != 'darwin'" },
+    { name = "transformers" },
+]
 service = [
     { name = "alembic" },
     { name = "fastapi" },
+    { name = "numpy" },
+    { name = "pgvector" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic-settings" },
     { name = "sqlalchemy" },
@@ -843,15 +850,19 @@ requires-dist = [
     { name = "fastapi", marker = "extra == 'service'", specifier = ">=0.115" },
     { name = "huggingface-hub", marker = "extra == 'hub'", specifier = ">=0.30" },
     { name = "kev", marker = "extra == 'kev'", git = "https://github.com/jaredpalmer/kev?rev=5e42a7a03f28134853dd3ff77461457e921e5ec1" },
+    { name = "numpy", marker = "extra == 'service'", specifier = ">=2" },
+    { name = "pgvector", marker = "extra == 'service'", specifier = ">=0.3.6" },
     { name = "psycopg", extras = ["binary"], marker = "extra == 'service'", specifier = ">=3.2" },
     { name = "pydantic", specifier = ">=2.9" },
     { name = "pydantic-settings", marker = "extra == 'service'", specifier = ">=2.6" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "sqlalchemy", marker = "extra == 'service'", specifier = ">=2.0.36" },
     { name = "torch", marker = "extra == 'kev'", specifier = ">=2.6,<2.9", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "torch", marker = "extra == 'rag'", specifier = ">=2.6,<2.9", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "transformers", marker = "extra == 'rag'", specifier = ">=5.17,<6" },
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'service'", specifier = ">=0.32" },
 ]
-provides-extras = ["kev", "hub", "service"]
+provides-extras = ["kev", "hub", "service", "rag"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -971,6 +982,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/80/af/2e08abf1cd3b8792a02f5116808f2398c2f77ecdff801ced2ce16007a6f9/peft-0.21.2.tar.gz", hash = "sha256:b803ccfb3f3f316004d850284306687833a2235ea278fb56abc856203456142e", size = 983614, upload-time = "2026-10-01T10:26:36.129Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/70/0b/59441cdbfdd342ed03c08af90a2fe16173f0cd48ab219f523b39ca059a79/peft-0.21.2-py3-none-any.whl", hash = "sha256:106ab6077ff72c54d21577f9af5970e34bac7582cb14209f7b2b511e322a4eae", size = 835427, upload-time = "2026-10-01T10:26:34.085Z" },
+]
+
+[[package]]
+name = "pgvector"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f8/23/96aa38899fbf8e103766db608d6e42acac269a96e08f3003fe9da3396fed/pgvector-0.5.1.tar.gz", hash = "sha256:94998a54b801b1075d623b8fa677fcb8210a7977b88f8e2203ab115c155af2e4", size = 35714, upload-time = "2026-10-09T01:50:22.779Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a2/8d/a9c2a531da0ebb54b4a7174450e8534a39db112a141ae3a437de28420111/pgvector-0.5.1-py3-none-any.whl", hash = "sha256:ec5bcd5ffaefe6ecb2dcc9564ca921d284564b969183bc837a144604773af8ea", size = 31056, upload-time = "2026-10-09T01:50:21.614Z" },
 ]
 
 [[package]]

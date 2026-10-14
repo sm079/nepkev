@@ -4,6 +4,7 @@ from logging.config import fileConfig
 
 from alembic import context
 
+from nepkev.rag import store  # noqa: F401  (registers kb_chunks on Base.metadata)
 from nepkev.service.db import Base, make_engine
 from nepkev.service.settings import Settings
 
