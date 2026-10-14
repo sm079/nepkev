@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-# The routing API on CPU. Weights are not baked in: the pinned checkpoint downloads on first start into the
+# The routing and answering API on CPU. Weights are not baked in: the pinned models download on first start into the
 # Hugging Face cache (a volume in docker-compose.yml), so the image stays small and restarts are fast.
 
 ARG PYTHON_VERSION=3.13
@@ -14,10 +14,10 @@ WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-dev --no-install-project --extra kev --extra service
+    uv sync --locked --no-dev --no-install-project --extra kev --extra service --extra rag
 COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --extra kev --extra service
+    uv sync --locked --no-dev --extra kev --extra service --extra rag
 
 FROM python:${PYTHON_VERSION}-slim-bookworm
 RUN groupadd --system --gid 10001 app \
@@ -25,9 +25,12 @@ RUN groupadd --system --gid 10001 app \
     && mkdir -p /home/app/.cache/huggingface && chown -R app:app /home/app/.cache
 COPY --from=builder --chown=app:app /app /app
 WORKDIR /app
+# HF_HUB_DISABLE_XET: on a slow connection the Hub's Xet transfer client stalled part-way through a model download;
+# plain HTTPS downloads completed.
 ENV PATH=/app/.venv/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/home/app/.cache/huggingface \
+    HF_HUB_DISABLE_XET=1 \
     NEPKEV_HOST=0.0.0.0 \
     NEPKEV_PORT=8000
 USER app

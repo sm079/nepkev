@@ -1,4 +1,4 @@
-# Only what the service needs: the package, configs, migrations config and the project metadata.
+# Only what the service needs: the package, configs, knowledge base, migrations config and project metadata.
 *
 !pyproject.toml
 !uv.lock
@@ -6,4 +6,5 @@
 !alembic.ini
 !nepkev/
 !configs/
+!kb/
 **/__pycache__

@@ -1,9 +1,10 @@
 # docker compose up --build    then    curl localhost:8000/ready
-# The first start downloads the checkpoint (~2 GB) into the hf-cache volume; /ready turns 200 once it is loaded.
+# The first start downloads the router checkpoint (~2 GB) and the embedding model (~0.5 GB) into the hf-cache volume;
+# /ready turns 200 once the router is loaded. /answer also needs ANTHROPIC_API_KEY (from the environment or .env).
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-nepkev}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nepkev}
@@ -20,11 +21,24 @@ services:
     image: nepkev-api       # built by the api service
     pull_policy: never
     command: ["alembic", "upgrade", "head"]
+    healthcheck: {disable: true}   # one-shot; the image's check is for the API
     environment: &db
       NEPKEV_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nepkev}:${POSTGRES_PASSWORD:-nepkev}@postgres:5432/${POSTGRES_DB:-nepkev}
     depends_on:
       postgres:
         condition: service_healthy
+
+  ingest:                   # embeds new or edited knowledge-base chunks; a no-op when nothing changed
+    image: nepkev-api
+    pull_policy: never
+    command: ["python", "-m", "nepkev.rag.ingest"]
+    healthcheck: {disable: true}
+    environment: *db
+    volumes:
+      - hf-cache:/home/app/.cache/huggingface
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
   api:
     build: .
@@ -34,12 +48,14 @@ services:
       NEPKEV_DEFAULT_CHANNEL: ${NEPKEV_DEFAULT_CHANNEL:-wallet}
       NEPKEV_DTYPE: ${NEPKEV_DTYPE:-fp32}
       NEPKEV_LOG_TEXT: ${NEPKEV_LOG_TEXT:-false}
+      NEPKEV_LLM_MODEL: ${NEPKEV_LLM_MODEL:-claude-opus-5-5}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - "${NEPKEV_API_PORT:-8000}:8000"
     volumes:
       - hf-cache:/home/app/.cache/huggingface
     depends_on:
-      migrate:
+      ingest:
         condition: service_completed_successfully
     restart: unless-stopped
 
