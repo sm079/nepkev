@@ -63,7 +63,7 @@ or CPU through WebAssembly): preset test messages, your own messages and the raw
 ```bash
 uv sync                   # core: generation, validation, splits, export, evaluation
 uv sync --extra hub       # + huggingface_hub, for push-hf
-uv run pytest             # 94 network-free tests; one needs `uv sync --extra kev` and is skipped otherwise
+uv run pytest             # network-free tests; the API's need Postgres (see Run as an API), one needs the kev extra
 ```
 
 API steps need `ANTHROPIC_API_KEY` (generation, verification) or `RUNPOD_API_KEY` (training), from the
@@ -76,6 +76,106 @@ A network-free end-to-end check with mock messages:
 ```bash
 uv run nepkev pipeline --config fixture-dryrun --out data/dryrun
 ```
+
+## Run as an API
+
+`nepkev.service` serves the checkpoint over HTTP (FastAPI) and logs every routed message to Postgres.
+
+```bash
+docker compose up --build        # Postgres, a one-shot migration, the API on :8000
+curl localhost:8000/ready        # 503 while the model loads, then {"ready":true,...}
+```
+
+The first start downloads the pinned checkpoint and its base model (about 2 GB) into a volume; two cold starts took 2.5
+and 7 minutes to become ready, mostly downloading. Later starts only load the model (about 40 seconds).
+
+```bash
+curl -X POST localhost:8000/route -H 'Content-Type: application/json' \
+     -d '{"text": "OTP aaudaina login garna sakdina", "channel": "wallet"}'
+```
+
+```json
+{"request_id": "75c786e3e04743df81c4ff39c8aeeaf5", "channel": "wallet", "intent": "login_otp", "confidence": 0.9999,
+ "needs_clarification": false, "clarification_reason": null, "clarifying_question": null,
+ "model_version": "sm079/nepkev@8daf1b3", "latency_ms": 3625.0}
+```
+
+Devanagari works the same way. On Windows shells, send it from a UTF-8 file (`--data-binary @body.json`) so the
+terminal does not re-encode it:
+
+```bash
+echo '{"text": "मेरो डेबिट कार्ड हरायो, ब्लक गरिदिनुस्", "channel": "bank"}' > body.json
+curl -X POST localhost:8000/route -H 'Content-Type: application/json' --data-binary @body.json
+# -> "intent": "card_issue", "confidence": 0.996, "needs_clarification": false
+```
+
+When the model is unsure, the API asks rather than guesses: `needs_clarification` is true when the model judges the
+message unclear (clarification probability >= 0.5, the evaluated decision rule) or when the calibrated probability of
+the top category is below 0.5 (`NEPKEV_MIN_CONFIDENCE`). The question is in the customer's script. The model misses
+mobile top-up wording, for example, and says so through its confidence:
+
+```json
+{"text": "mero paisa katyo tara recharge bhayena"}
+-> {"intent": "identity_verification", "confidence": 0.3796, "needs_clarification": true,
+    "clarification_reason": "low_confidence",
+    "clarifying_question": "tapainko samasya yimadhye kun ho: KYC/pahichan pramanikaran samasya, ki paisa pathaiyo tara paune lai pugena? ali khulaera bhannuhos na.", ...}
+```
+
+| endpoint | what it does |
+|---|---|
+| `POST /route` | `{"text", "channel"?}` -> intent, calibrated confidence, clarification decision and question. Text is 1-2,000 characters (422 otherwise); `channel` is `shop`, `wallet` or `bank` and defaults to `NEPKEV_DEFAULT_CHANNEL`. An optional `Idempotency-Key` header replays the stored response for the same body (header `Idempotent-Replayed: true`) and rejects the same key with a different body (422). |
+| `GET /health` | liveness: the process is up |
+| `GET /ready` | readiness: model loaded and database reachable (503 otherwise) |
+| `GET /stats?hours=24` | requests, clarification rate, p50/p95 model latency and counts per channel and intent over the window, computed in SQL |
+
+Each request is logged to `route_requests` with a SHA-256 of the text, its script (Devanagari, Romanized or mixed),
+the routing and the model version. Raw text is stored only with `NEPKEV_LOG_TEXT=true`. Settings are in
+[`.env.example`](.env.example).
+
+### Latency on CPU
+
+`scripts/bench_api.py` sends the 33 held-out test messages of the browser demo three times, one request at a time, to
+the container on a 16-thread laptop CPU (x86-64 with native bf16). Model time is what the API reports in
+`latency_ms`; round trip is what the client measured.
+
+| precision | model p50 | model p95 | round trip p50 | round trip p95 | matches the test label |
+|---|---|---|---|---|---|
+| fp32 (default, the evaluated path) | 3,694 ms | 4,561 ms | 3,917 ms | 4,826 ms | 26/27 |
+| bf16 (`NEPKEV_DTYPE=bf16`) | 2,661 ms | 3,820 ms | 2,874 ms | 4,135 ms | 26/27 |
+
+Each request is one forward pass of 347-441 tokens (median 392) for these messages, of which the message itself is 27-102 (median 57); the rest is the two questions and the category descriptions. bf16 is only
+faster on CPUs with native bf16 support; elsewhere keep fp32.
+
+### Architecture
+
+```mermaid
+flowchart LR
+    client([client]) -->|POST /route| api
+    subgraph container[api container]
+        api[FastAPI app] --> decide[clarification policy<br/>nepkev.service.clarify]
+        api --> router[KevRouter<br/>nepkev.router]
+        router --> kev[upstream Kev<br/>pointer head, calibrated]
+    end
+    hub[(Hugging Face Hub<br/>sm079/nepkev @ pinned commit)] -.->|first start| router
+    api -->|route_requests| pg[(Postgres)]
+    api -->|GET /stats: SQL percentiles| pg
+    migrate[alembic upgrade head] -->|one-shot| pg
+```
+
+The router sends the model exactly the request the evaluation scored (serving question wording, canonical category
+order; a test checks it against the evaluation export), so the served probabilities are the evaluated ones.
+
+### Without Docker
+
+```bash
+uv sync --extra kev --extra service
+export NEPKEV_DATABASE_URL=postgresql+psycopg://nepkev:nepkev@localhost:5432/nepkev
+uv run alembic upgrade head
+uv run python -m nepkev.service             # http://127.0.0.1:8000/docs
+```
+
+The API tests use a stub router and a real Postgres, which they wipe: point `NEPKEV_TEST_DATABASE_URL` at a scratch
+database to run them (they are skipped otherwise). `uv run pytest -m slow` also runs the real checkpoint.
 
 ## Pipeline
 
@@ -179,10 +279,14 @@ nepkev/                            the package
   baselines.py, evaluate.py        keyword router; metrics, bootstrap CIs, bias checks
   remote.py, train_eval.sh         RunPod job runner and the job it runs on the pod
   hub.py                           Hugging Face upload
+  router.py                        serving-time routing of one message (loads the checkpoint once)
+  service/                         HTTP API: FastAPI app, Postgres request log, Alembic migrations
 configs/                           taxonomy, generation, romanization, rules, remote, upstream pins
   prompts/                         generator and verifier prompts, the 30 style examples
 tests/                             tests; fixtures/ holds 84 hand-checked records
 docs/                              results and findings, taxonomy notes
+scripts/                           API latency benchmark
+Dockerfile, docker-compose.yml     API image; Postgres + migration + API stack
 ```
 
 ## Limitations

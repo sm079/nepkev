@@ -20,6 +20,7 @@ dependencies = [
 # locally (training runs on a RunPod pod, which installs Kev itself).
 kev = [
     "kev @ git+https://github.com/jaredpalmer/kev@5e42a7a03f28134853dd3ff77461457e921e5ec1",
+    "torch>=2.6,<2.9",   # Kev's own range; listed so the CPU index below applies to it
 ]
 
 # Uploading a trained checkpoint (nepkev push-hf).
@@ -27,13 +28,36 @@ hub = [
     "huggingface_hub>=0.30",
 ]
 
+# The routing API (nepkev.service). Serving the real model also needs `kev`; the tests use a stub router.
+service = [
+    "alembic>=1.14",
+    "fastapi>=0.115",
+    "psycopg[binary]>=3.2",
+    "pydantic-settings>=2.6",
+    "sqlalchemy>=2.0.36",
+    "uvicorn[standard]>=0.32",
+]
+
 [project.scripts]
 nepkev = "nepkev.cli:main"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28",
     "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
 ]
+
+# Kev runs on CPU here (local checks, the API container); training runs on a pod with Kev's own environment. The CPU
+# index keeps the Linux image free of the ~2.5 GB of CUDA wheels PyPI's torch pulls in.
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.setuptools.packages.find]
 include = ["nepkev*"]
@@ -43,4 +67,19 @@ nepkev = ["train_eval.sh"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["kev: needs the upstream kev package (uv sync --extra kev)"]
+addopts = "-m 'not slow'"
+markers = [
+    "kev: needs the upstream kev package (uv sync --extra kev)",
+    "slow: downloads and runs the real model (uv run pytest -m slow)",
+]
+
+[tool.coverage.run]
+source = ["nepkev.service", "nepkev.router"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]   # long lines are left to review

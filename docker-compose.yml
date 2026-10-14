@@ -1,0 +1,48 @@
+# docker compose up --build    then    curl localhost:8000/ready
+# The first start downloads the checkpoint (~2 GB) into the hf-cache volume; /ready turns 200 once it is loaded.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nepkev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nepkev}
+      POSTGRES_DB: ${POSTGRES_DB:-nepkev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    image: nepkev-api       # built by the api service
+    pull_policy: never
+    command: ["alembic", "upgrade", "head"]
+    environment: &db
+      NEPKEV_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nepkev}:${POSTGRES_PASSWORD:-nepkev}@postgres:5432/${POSTGRES_DB:-nepkev}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build: .
+    image: nepkev-api
+    environment:
+      <<: *db
+      NEPKEV_DEFAULT_CHANNEL: ${NEPKEV_DEFAULT_CHANNEL:-wallet}
+      NEPKEV_DTYPE: ${NEPKEV_DTYPE:-fp32}
+      NEPKEV_LOG_TEXT: ${NEPKEV_LOG_TEXT:-false}
+    ports:
+      - "${NEPKEV_API_PORT:-8000}:8000"
+    volumes:
+      - hf-cache:/home/app/.cache/huggingface
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  hf-cache:
