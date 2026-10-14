@@ -345,7 +345,7 @@ def render(rep: dict, test: list[EvalRow], results: dict[str, AnswerResult]) -> 
             f"Latency p50 / p95 for questions that reach the model: answer generation "
             f"{ms_pair(rep['latency_ms']['generate'])} ms, retrieval plus generation "
             f"{ms_pair(rep['latency_ms']['retrieve_plus_generate'])} ms. Refusals at the gate take only the retrieval "
-            "time. Routing is separate (see the API section of the README).", ""]
+            "time. Routing is separate (see docs/usage.md).", ""]
         misses = [x for x in test if not x.must_refuse and results[x.id].refused] + \
                  [x for x in test if x.must_refuse and not results[x.id].refused]
         if misses:
