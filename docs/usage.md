@@ -1,0 +1,241 @@
+# Usage
+
+How to set up the project, run the HTTP API, and rebuild the data and the model. Results are in
+[results.md](results.md); the cited-answers layer is in [rag.md](rag.md).
+
+## Setup
+
+```bash
+uv sync                   # core: generation, validation, splits, export, evaluation
+uv sync --extra hub       # + huggingface_hub, for push-hf
+uv sync --extra kev --extra service --extra rag   # + the API and the RAG layer
+uv run pytest             # network-free tests; the API's need Postgres (see Run as an API), one needs the kev extra
+```
+
+API steps need `ANTHROPIC_API_KEY` (generation, verification) or `RUNPOD_API_KEY` (training), from the
+environment or a `.env` file (copy `.env.example`).
+Every command that calls an API refuses to run without `--yes` and skips work already on disk, so a run directory whose model
+outputs are all present rebuilds offline without an API key.
+
+A network-free end-to-end check with mock messages:
+
+```bash
+uv run nepkev pipeline --config fixture-dryrun --out data/dryrun
+```
+
+## Run as an API
+
+`nepkev.service` serves the checkpoint over HTTP (FastAPI) and logs every routed message to Postgres.
+
+```bash
+docker compose up --build        # Postgres, one-shot migration and ingest, the API on :8000
+curl localhost:8000/ready        # 503 while the model loads, then {"ready":true,...}
+```
+
+The first start downloads the pinned checkpoint and its base model (about 2 GB) into a volume; two cold starts took 2.5
+and 7 minutes to become ready, mostly downloading. Later starts only load the model (about 40 seconds).
+
+```bash
+curl -X POST localhost:8000/route -H 'Content-Type: application/json' \
+     -d '{"text": "OTP aaudaina login garna sakdina", "channel": "wallet"}'
+```
+
+```json
+{"request_id": "75c786e3e04743df81c4ff39c8aeeaf5", "channel": "wallet", "intent": "login_otp", "confidence": 0.9999,
+ "needs_clarification": false, "clarification_reason": null, "clarifying_question": null,
+ "model_version": "sm079/nepkev@8daf1b3", "latency_ms": 3625.0}
+```
+
+Devanagari works the same way. On Windows shells, send it from a UTF-8 file (`--data-binary @body.json`) so the
+terminal does not re-encode it:
+
+```bash
+echo '{"text": "मेरो डेबिट कार्ड हरायो, ब्लक गरिदिनुस्", "channel": "bank"}' > body.json
+curl -X POST localhost:8000/route -H 'Content-Type: application/json' --data-binary @body.json
+# -> "intent": "card_issue", "confidence": 0.996, "needs_clarification": false
+```
+
+When the model is unsure, the API asks rather than guesses: `needs_clarification` is true when the model judges the
+message unclear (clarification probability >= 0.5, the evaluated decision rule) or when the calibrated probability of
+the top category is below 0.5 (`NEPKEV_MIN_CONFIDENCE`). The question is in the customer's script. The model misses
+mobile top-up wording, for example, and says so through its confidence:
+
+```json
+{"text": "mero paisa katyo tara recharge bhayena"}
+-> {"intent": "identity_verification", "confidence": 0.3796, "needs_clarification": true,
+    "clarification_reason": "low_confidence",
+    "clarifying_question": "tapainko samasya yimadhye kun ho: KYC/pahichan pramanikaran samasya, ki paisa pathaiyo tara paune lai pugena? ali khulaera bhannuhos na.", ...}
+```
+
+| endpoint | what it does |
+|---|---|
+| `POST /route` | `{"text", "channel"?}` -> intent, calibrated confidence, clarification decision and question. Text is 1-2,000 characters (422 otherwise); `channel` is `shop`, `wallet` or `bank` and defaults to `NEPKEV_DEFAULT_CHANNEL`. An optional `Idempotency-Key` header replays the stored response for the same body (header `Idempotent-Replayed: true`) and rejects the same key with a different body (422). |
+| `POST /answer` | `{"text", "channel"?}` -> a cited answer from the knowledge base, or a refusal; see [rag.md](rag.md) |
+| `GET /health` | liveness: the process is up |
+| `GET /ready` | readiness: model loaded and database reachable (503 otherwise); `answer` says whether `/answer` can serve |
+| `GET /stats?hours=24` | requests, clarification rate, p50/p95 model latency and counts per channel and intent over the window, computed in SQL |
+
+Each request is logged to `route_requests` with a SHA-256 of the text, its script (Devanagari, Romanized or mixed),
+the routing and the model version. Raw text is stored only with `NEPKEV_LOG_TEXT=true`. Settings are in
+[`.env.example`](../.env.example).
+
+### Latency on CPU
+
+`scripts/bench_api.py` sends the 33 held-out test messages of the browser demo three times, one request at a time, to
+the container on a 16-thread x86-64 CPU with native bf16. Model time is what the API reports in
+`latency_ms`; round trip is what the client measured.
+
+| precision | model p50 | model p95 | round trip p50 | round trip p95 | matches the test label |
+|---|---|---|---|---|---|
+| fp32 (default, the evaluated path) | 3,694 ms | 4,561 ms | 3,917 ms | 4,826 ms | 26/27 |
+| bf16 (`NEPKEV_DTYPE=bf16`) | 2,661 ms | 3,820 ms | 2,874 ms | 4,135 ms | 26/27 |
+
+Each request is one forward pass of 347-441 tokens (median 392) for these messages, of which the message itself is 27-102 (median 57); the rest is the two questions and the category descriptions. bf16 is only
+faster on CPUs with native bf16 support; elsewhere keep fp32.
+
+### Architecture
+
+```mermaid
+flowchart LR
+    client([client]) -->|POST /route| api
+    subgraph container[api container]
+        api[FastAPI app] --> decide[clarification policy<br/>nepkev.service.clarify]
+        api --> router[KevRouter<br/>nepkev.router]
+        router --> kev[upstream Kev<br/>pointer head, calibrated]
+    end
+    hub[(Hugging Face Hub<br/>sm079/nepkev @ pinned commit)] -.->|first start| router
+    api -->|route_requests| pg[(Postgres)]
+    api -->|GET /stats: SQL percentiles| pg
+    migrate[alembic upgrade head] -->|one-shot| pg
+```
+
+The router sends the model exactly the request the evaluation scored (serving question wording, canonical category
+order; a test checks it against the evaluation export), so the served probabilities are the evaluated ones.
+
+### Without Docker
+
+```bash
+uv sync --extra kev --extra service --extra rag
+export NEPKEV_DATABASE_URL=postgresql+psycopg://nepkev:nepkev@localhost:5432/nepkev
+uv run alembic upgrade head
+uv run python -m nepkev.rag.ingest          # with --extra rag; only needed for /answer
+uv run python -m nepkev.service             # http://127.0.0.1:8000/docs
+```
+
+The API tests use a stub router and a real Postgres, which they wipe: point `NEPKEV_TEST_DATABASE_URL` at a scratch
+database to run them (they are skipped otherwise). `uv run pytest -m slow` also runs the real checkpoint.
+
+## Pipeline
+
+All outputs go under `data/` and `runs/` (git-ignored).
+
+### 1. Clean synthetic data
+
+Scenarios are sampled first, with labels decided from scenario facts and taxonomy rules before any text exists. An
+LLM then writes each scenario as one casual Devanagari message; a second model labels every message from its text
+alone; a third settles disagreements; deterministic checks run last.
+
+```bash
+uv run nepkev estimate  --config pilot                          # token estimate
+uv run nepkev scenarios --config pilot --out data/pilot         # 3,000 scenarios, balanced per category
+uv run nepkev generate  --config pilot --out data/pilot --batch --yes   # generator model, batch API; run again to collect
+uv run nepkev records   --config pilot --out data/pilot
+uv run nepkev verify     --config pilot --out data/pilot --yes  # a verifier model labels every message from the text
+uv run nepkev adjudicate --config pilot --out data/pilot --yes  # an adjudicator model decides the verifier's disputes
+uv run nepkev validate --in data/pilot/records.jsonl --out data/pilot/validated.jsonl
+uv run nepkev romanize --config pilot --in data/pilot/validated.jsonl --out data/pilot/with_roman.jsonl
+```
+
+The best run's data: 3,000 generated, 2,964 accepted, 2,954 Romanized twins.
+
+### 2. App-review-style data
+
+The same accepted scenarios, written again in the style of app-store reviews: typos, chat spellings, ranting, swearing,
+mostly Romanized. The generator sees 30 fixed example reviews (`configs/prompts/realstyle_style_examples.json`). Script is
+assigned within each label bucket (15% Devanagari), so script says nothing about the label.
+
+```bash
+uv run nepkev realstyle-generate --config realstyle --out data/realstyle-sample --sample 40 --yes   # look at a sample first
+uv run nepkev realstyle-generate --config realstyle --out data/realstyle --batch --yes             # run again to collect
+uv run nepkev realstyle-records  --config realstyle --out data/realstyle
+uv run nepkev verify     --config realstyle --out data/realstyle --yes
+uv run nepkev adjudicate --config realstyle --out data/realstyle --yes
+uv run nepkev validate --in data/realstyle/records.jsonl --out data/realstyle/validated.jsonl
+```
+
+The best run's data: 2,964 written, 2,831 accepted (3 label disputes lost, 122 script glitches such as stray Devanagari
+vowel signs inside Romanized words, 7 not Nepali, 1 duplicate).
+
+### 3. Split and export
+
+```bash
+uv run nepkev split --clean data/pilot/with_roman.jsonl --realstyle data/realstyle/validated.jsonl \
+    [--external data/external] --out data/mix/splits
+uv run nepkev export-kev --splits data/mix/splits --out data/mix/kev
+```
+
+Clean records are split 80/5/5/10 (train/dev/calib/test) by scenario group, after merging groups that share
+near-identical text, so no paraphrase crosses splits. App-review-style records join the split their scenario already
+has. `--external` takes a directory of additional labelled records (`train.jsonl`, `dev.jsonl`, `calib.jsonl` in the
+record schema, `source.generator: "external"`); they are only trained on, never scored. The split prints each
+category's share of the training labels; check it.
+
+Training export: half the questions use a reworded instruction, 15% drop 1-3 wrong candidates, candidate order is
+shuffled. The gold category is never removed (see [results.md](results.md#decisions)).
+
+### 4. Train on RunPod
+
+```bash
+uv run nepkev remote-train --config kev-0.8b --kev-dir data/mix/kev --out runs/mix --yes
+```
+
+One RunPod pod (RTX 4090 first, hard deadline): scores the untouched model, fine-tunes 2 epochs from
+the released checkpoint (each scored on dev), keeps the epoch with the lowest dev NLL, fits a temperature on calib,
+then scores test and Kev's transfer-v4 suite. Results download before every termination, and the pod is always
+terminated. Upstream pins are in `configs/upstream.yaml`; `configs/remote/kev-4b.yaml` runs the same job on Kev-4B.
+
+### 5. Evaluate and publish
+
+```bash
+uv run nepkev baseline-rules --splits data/mix/splits --out runs/mix/rules
+uv run nepkev evaluate --splits data/mix/splits --kev-dir data/mix/kev --runs runs/mix/runs \
+    --rules runs/mix/rules --out runs/mix/report
+uv run nepkev push-hf --runs runs/mix/runs --repo <user>/nepkev --report runs/mix/report/report.json \
+    --data-note "<a sentence on the training data>" --code-url https://github.com/<user>/nepkev
+```
+
+The report compares keyword rules, the untouched model and the fine-tuned model: accuracy, macro-F1, NLL, Brier, ECE,
+coverage at 5% error, clarification F1, routing at the calib threshold, slices by origin, domain, family and length,
+bias checks, and retention on transfer-v4. `push-hf` uploads only the files Kev loads (adapter, its config, `head.pt`)
+with a short model card built from the report, creates the repo private and refuses to write to a public one.
+
+## Reproducing the best run
+
+Steps 1-3 are deterministic given the stored model outputs (`raw.jsonl`, `verify.jsonl`, `adjudicator.jsonl`). This
+code was checked against the best run: from those outputs it rebuilds the train, dev and calib files mix-v3-add trained
+on byte for byte, and re-scores its predictions to identical numbers. Without the external records, the same commands
+give the best run's mix minus those 379 records; that exact mix has not been trained yet.
+
+## Layout
+
+```
+nepkev/                            the package
+  taxonomy.py, scenarios.py        taxonomy, scenario sampling (labels before text)
+  generation/                      prompt assembly, LLM provider (+ dry run), generate/verify/adjudicate, app-review style
+  validate.py, romanize.py         deterministic checks; Devanagari -> Romanized twins
+  split.py, export_kev.py          group split, training mix, Kev JSONL export
+  baselines.py, evaluate.py        keyword router; metrics, bootstrap CIs, bias checks
+  remote.py, train_eval.sh         RunPod job runner and the job it runs on the pod
+  hub.py                           Hugging Face upload
+  router.py                        serving-time routing of one message (loads the checkpoint once)
+  service/                         HTTP API: FastAPI app, Postgres request log, Alembic migrations
+  rag/                             knowledge-base chunking, embeddings, pgvector store, cited answers, evaluation
+kb/                                synthetic help articles (English and Nepali) for /answer
+eval/                              RAG question set, evaluation report, cached answers and judge verdicts
+configs/                           taxonomy, generation, romanization, rules, remote, upstream pins
+  prompts/                         generator and verifier prompts, the 30 style examples, answer and judge prompts
+tests/                             tests; fixtures/ holds 84 hand-checked records
+docs/                              results, usage, RAG layer, taxonomy notes
+scripts/                           API latency benchmark
+Dockerfile, docker-compose.yml     API image; Postgres + migration + API stack
+```

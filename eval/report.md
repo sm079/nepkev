@@ -41,7 +41,7 @@ Refusals by stage: 9 by the similarity gate, 12 by the model, 0 for lack of a ve
 
 Judge: `claude-sonnet-5-5`. Hand check: 22 of 22 judge verdicts agree with a reading of the answer against its cited chunks (20 judged answers taken at a fixed stride, plus every one the judge did not call supported; `eval/judge_check.jsonl`).
 
-Latency p50 / p95 for questions that reach the model: answer generation 5,303 / 8,988 ms, retrieval plus generation 5,332 / 9,015 ms. Refusals at the gate take only the retrieval time. Routing is separate (see the API section of the README).
+Latency p50 / p95 for questions that reach the model: answer generation 5,303 / 8,988 ms, retrieval plus generation 5,332 / 9,015 ms. Refusals at the gate take only the retrieval time. Routing is separate (see docs/usage.md).
 
 ## Wrong refusal decisions (test)
 
