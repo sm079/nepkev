@@ -33,6 +33,15 @@ class Settings(BaseSettings):
     # Raw message text is not stored unless asked for; the log keeps a SHA-256 of it.
     log_text: bool = False
 
+    # POST /answer (nepkev.rag). Unset values come from configs/rag.yaml.
+    rag_enabled: bool = True
+    rag_embedding_model: str | None = None
+    rag_top_k: int | None = Field(None, ge=1, le=20)
+    rag_min_similarity: float | None = Field(None, ge=-1, le=1)
+    llm_provider: Literal["anthropic", "none"] = "anthropic"   # anthropic needs ANTHROPIC_API_KEY
+    llm_model: str = "claude-opus-5-5"
+    llm_effort: Literal["low", "medium", "high"] = "low"
+
 
 @lru_cache
 def get_settings() -> Settings:
