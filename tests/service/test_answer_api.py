@@ -63,6 +63,17 @@ def test_answer_needs_a_json_body(rag_client):
     assert r.status_code == 415
 
 
+def test_answer_model_outage_is_503(rag_client, model, monkeypatch):
+    import anthropic
+
+    def down(*args):
+        raise anthropic.APIConnectionError(message="connection reset", request=None)
+
+    monkeypatch.setattr(model, "draft", down)
+    r = rag_client.post("/answer", json={"text": QUESTION, "channel": "shop"})
+    assert r.status_code == 503 and r.json() == {"detail": "answer model unavailable"} and r.headers["Retry-After"]
+
+
 def test_answer_is_503_without_an_answerer(client):
     r = client.post("/answer", json={"text": QUESTION})
     assert r.status_code == 503 and r.json()["detail"] == "answerer disabled: not configured"

@@ -827,6 +827,7 @@ rag = [
 service = [
     { name = "alembic" },
     { name = "fastapi" },
+    { name = "numpy" },
     { name = "pgvector" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic-settings" },
@@ -849,6 +850,7 @@ requires-dist = [
     { name = "fastapi", marker = "extra == 'service'", specifier = ">=0.115" },
     { name = "huggingface-hub", marker = "extra == 'hub'", specifier = ">=0.30" },
     { name = "kev", marker = "extra == 'kev'", git = "https://github.com/jaredpalmer/kev?rev=5e42a7a03f28134853dd3ff77461457e921e5ec1" },
+    { name = "numpy", marker = "extra == 'service'", specifier = ">=2" },
     { name = "pgvector", marker = "extra == 'service'", specifier = ">=0.3.6" },
     { name = "psycopg", extras = ["binary"], marker = "extra == 'service'", specifier = ">=3.2" },
     { name = "pydantic", specifier = ">=2.9" },

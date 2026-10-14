@@ -25,6 +25,7 @@ from contextlib import asynccontextmanager
 from datetime import timedelta
 from typing import Annotated
 
+import anthropic
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy import Float, Integer, cast, func, literal, select
@@ -146,27 +147,36 @@ def create_app(settings: Settings | None = None, router: Router | None = None,
         engine = make_engine(settings.database_url)
         app.state.engine, app.state.sessions = engine, make_sessionmaker(engine)
         app.state.model = models = Slot("model", router)
-        given = router is not None
-        app.state.answerer = answers = Slot("answerer", answerer, "disabled" if given and answerer is None else None,
-                                            "not configured" if given and answerer is None else None)
+        if router is None:
+            app.state.answerer = answers = Slot("answerer")
+        elif answerer is None:
+            app.state.answerer = Slot("answerer", status="disabled", detail="not configured")
+        else:
+            app.state.answerer = Slot("answerer", answerer)
 
         def load_all() -> None:
             models.load(lambda: kev_router(settings))
             answers.load(lambda: rag_answerer(settings))
 
-        loading = None if given else asyncio.create_task(asyncio.to_thread(load_all))
+        loading = None if router is not None else asyncio.create_task(asyncio.to_thread(load_all))
         yield
         if loading is not None and not loading.done():
             log.warning("shutting down while the model is still loading")
         engine.dispose()
 
-    app = FastAPI(title="nepkev router", version="1.0", lifespan=lifespan,
-                  description="Routes Nepali support messages (Devanagari or Romanized) for a demo shop, wallet and bank.")
+    app = FastAPI(title="nepkev", version="1.0", lifespan=lifespan,
+                  description="Routes Nepali support messages (Devanagari or Romanized) for a demo shop, wallet and "
+                              "bank, and answers questions from their help articles with citations.")
 
     @app.exception_handler(OperationalError)
     async def database_down(request: Request, exc: OperationalError) -> JSONResponse:
         log.error("database error on %s: %s", request.url.path, exc.orig)
         return JSONResponse({"detail": "database unavailable"}, status_code=503)
+
+    @app.exception_handler(anthropic.APIError)
+    async def answer_model_down(request: Request, exc: anthropic.APIError) -> JSONResponse:
+        log.error("answer model error on %s: %s", request.url.path, exc)
+        return JSONResponse({"detail": "answer model unavailable"}, status_code=503, headers={"Retry-After": "30"})
 
     @app.get("/health")
     def health() -> dict:
