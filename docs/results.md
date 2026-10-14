@@ -1,14 +1,15 @@
-# Results and findings
+# Results
 
-All runs fine-tune Kev-0.8B (`jaredpalmer/kev-0.8b@9a45d25`) on one RTX 4090 RunPod pod. Every number below is on
-**generated test data**, re-scored with the current `nepkev evaluate`. External records are never scored.
-Results on real app reviews are in [real-text.md](real-text.md).
+All runs fine-tune Kev-0.8B (`jaredpalmer/kev-0.8b@9a45d25`) on one rented RTX 4090. There are two test sets:
+generated messages (never trained on) and real app reviews. External records are never scored.
+
+## Generated test data
 
 Test sets: the pilot has its own split (467 records). mix-v1, mix-v2 and the mix-v3 runs share the same 598 clean
 test records (same scenarios, seed and split); the mix-v3 test adds 291 app-review-style records (254 Romanized, 37
 Devanagari), 889 in all. 95% confidence intervals come from a bootstrap that resamples whole scenario groups.
 
-## Runs
+### Runs
 
 | run | training data (records) | gold removal | epochs (selected) | test acc [95% CI] | untouched | rules | clarify F1 |
 |---|---|---|---|---|---|---|---|
@@ -55,7 +56,7 @@ recall at least 0.5 for categories with 10+ items; `other` predicted at most 1.5
 | mix-v3-replace | 1.39x | 0.64 | 5.8% / 10.0% | fail: 6 categories over-predicted, 2 under 0.5 recall, `other` precision |
 | untouched Kev (any run) | 5.0-5.5x | 0.16-0.18 | 99.8% / 10% | fail |
 
-## Paired comparisons on the shared 598 clean test records
+### Paired comparisons on the shared 598 clean test records
 
 | comparison | accuracy difference [95% CI] |
 |---|---|
@@ -64,7 +65,7 @@ recall at least 0.5 for categories with 10+ items; `other` predicted at most 1.5
 | mix-v3-add minus mix-v1 | +0.017 [+0.000, +0.036] |
 | mix-v3-replace minus mix-v2 | -0.236 [-0.276, -0.192] |
 
-## Findings
+### Findings
 
 1. **Fine-tuning is what makes Nepali work.** The untouched model gets 0.35-0.43 and sends most Nepali messages to
    `other` (predicted 5x its true share) while asking to clarify almost always (99.8% vs 10%). After 2 epochs it gets
@@ -104,13 +105,167 @@ recall at least 0.5 for categories with 10+ items; `other` predicted at most 1.5
    0.02-0.05, but calib comes from the same data as training. On Kev's English transfer-v4 suite, accuracy is retained
    (0.643-0.646 vs 0.648) while ECE rises from 0.049 to 0.09-0.12 and errors at 90%+ confidence from 0.2% to 2-4%.
 
+## Real app reviews
+
+Nepali reviews that people wrote about wallet, banking and shopping apps in a public app store. mix-v3-add gets
+**0.600** issue accuracy here, against 0.966 on generated test data.
+
+For scale: Kev's own README reports the untouched Kev-0.8B at **0.648 / 0.697** (development / test) on English
+datasets and rule types it never trained on ("new sources"), and 0.827 / 0.838 on held-out examples of the datasets
+it trained on. Our run reproduces the 0.648 on the development set (transfer-v4). So the fine-tuned model on real
+Nepali reviews sits a little below what the base model does on unfamiliar English tasks. The tasks and labels differ,
+so this is a rough comparison, not a controlled one.
+
+### Test set
+
+- 273 reviews (wallet 207, bank 37, shop 29), sampled from the same pool as the 379 `external` training records.
+  None was trained on, and near-duplicates of test reviews were removed from training.
+- Sampled per domain, at most half of any category and at most the domain's median count of non-`other` categories,
+  so the mix is flatter than the raw reviews (where about 62% of problems are `other`).
+- Labels come from a large language model and were not checked by a person. Accuracy here is agreement with those
+  labels on real text, not with human judgement.
+- 215 reviews name one concrete problem and are scored for issue accuracy (wallet 164, bank 29, shop 22). 22 are
+  vague and 15 name several problems; these get soft targets and count only toward clarification. 21 are not support
+  requests at all (praise, feature requests, rants) and are reported separately.
+- Bank and shop have fewer than 30 scored reviews each, so their numbers are rough.
+
+### Results
+
+Issue accuracy on the 215 scored reviews (95% CIs from a bootstrap):
+
+| run | fine-tuned [95% CI] | wallet | bank | shop | `other` predicted / true | `other` precision |
+|---|---|---|---|---|---|---|
+| mix-v2 | 0.549 [0.484, 0.610] | 0.543 | 0.586 | 0.545 | 2.59x | 0.30 |
+| **mix-v3-add** | **0.600** [0.535, 0.660] | 0.598 | 0.621 | 0.591 | 2.41x | 0.28 |
+| mix-v3-replace | 0.549 [0.486, 0.609] | 0.537 | 0.517 | 0.682 | 2.68x | 0.24 |
+| keyword rules | 0.335 [0.276, 0.399] | 0.335 | 0.310 | 0.364 | 0.00x | n/a |
+| Kev-0.8B untouched | 0.237 [0.182, 0.297] | 0.244 | 0.138 | 0.318 | 8.23x | 0.12 |
+
+mix-v3-add minus mix-v2, paired on the same reviews: +0.051 [+0.005, +0.094]. mix-v3-add minus the untouched model:
++0.363 [+0.289, +0.430]. mix-v1 was scored on an earlier, larger real test (600 reviews, different sampling): 0.543
+[0.500, 0.587] against 0.315 untouched and 0.289 rules, so it is not in the table.
+
+More for mix-v3-add on real text:
+
+| measure | real reviews | generated test |
+|---|---|---|
+| issue accuracy | 0.600 | 0.966 |
+| macro-F1 | 0.607 | 0.965 |
+| issue NLL | 1.389 | 0.122 |
+| ECE | 0.094 | 0.021 |
+| routed at the calib confidence threshold | 63.3%, with 26.5% of those wrong | 99.6%, 3.3% wrong |
+| clarification F1 | 0.267 [0.107, 0.406] | 0.874 |
+| clarification rate (predicted / true) | 9.1% / 14.7% | 8.8% / 10.0% |
+| wrong at 90%+ confidence | 6 of 63 | |
+
+The bias checks fail on real text for every predictor. The fine-tuned model over-predicts `other` and has recall
+under 0.5 for `payment_failed_debited` (0.19), `payment_failed_no_debit` (0.33) and `unexpected_transaction` (0.38) in
+the wallet domain.
+
+### Where the errors are (mix-v3-add)
+
+86 of the 215 scored reviews are wrong:
+
+| error | count | share of errors |
+|---|---|---|
+| a real category sent to `other` | 38 | 44% |
+| one money problem mistaken for another (debited vs not debited, refund, transfer not credited, unexpected transaction) | 28 | 33% |
+| `other` sent to a category | 7 | 8% |
+| anything else | 13 | 15% |
+
+Most frequent: `payment_failed_no_debit` -> `other` (6), `payment_failed_debited` -> `other` (5), and 4 each of
+`transfer_not_credited`, `login_otp`, `withdrawal_issue` and `bank_linking` -> `other`.
+
+On the 21 reviews that are not support requests, the fine-tuned model answers `other` for 14 and asks to clarify for
+3; the keyword router asks to clarify for 19 and routes most of the rest to `login_otp`; the untouched model answers
+`other` for all 21 and asks to clarify every time.
+
+### Findings
+
+1. **Fine-tuning helps on real text too, but much less.** 0.600 against 0.237 untouched and 0.335 for the rules,
+   while generated test is at 0.966. The gap between the two test sets (about 0.37) is the main open problem, and
+   most of it comes from the data ([Why real reviews are harder](#why-real-reviews-are-harder)).
+2. **`other` is the main failure.** It is predicted 2.4x as often as it is true, and only 28% of `other` predictions
+   are right. Real reviews often describe a problem loosely or bury it in a rant, and the model falls back to `other`
+   when nothing matches the clear wording it was trained on. On generated
+   test the same model predicts `other` at 1.03x with 0.96 precision.
+3. **Money categories blur.** A third of the errors swap one money category for another. Reviews rarely say whether
+   the money left the account, which is exactly what separates `payment_failed_debited` from
+   `payment_failed_no_debit`; the reference labels have to guess as well, so part of this error is in the labels.
+4. **App-review-style data helped a little.** Adding it (mix-v3-add) gained +0.051 over mix-v2 on the same reviews,
+   with an interval that just excludes 0. Using it instead of the clean data
+   (mix-v3-replace) scored the same as mix-v2 (0.549). Re-telling clean scenarios in a messy voice moves the model
+   only part of the way: style was not the whole gap.
+5. **The untouched model is much worse on real text than on app-review-style text** (0.237 vs 0.557). Generated
+   reviews state their problem clearly; real ones often do not. That difference in content, not spelling or
+   profanity, is what the generated data misses.
+6. **Clarification does not transfer.** F1 falls from 0.874 to 0.267, and the model asks to clarify less often than
+   the labels say it should (9.1% vs 14.7%). The vague and multi-problem messages it learned from are generated
+   ones, and real reviews are vague in other ways.
+7. **Confidence is still useful.** At 90%+ confidence the fine-tuned model is wrong on 6 of 63 reviews, and ECE is
+   0.094. A confidence threshold can route the clear cases and hand the rest to a person, though the calib threshold
+   chosen on generated data lets through far more errors here (26.5%) than on generated test (3.3%).
+
+## Why real reviews are harder
+
+The drop from 0.966 to 0.600 is mostly a data problem. The model learns the task as the training data presents it
+(0.966 on held-out generated messages, 0.962 on the app-review-style ones). Real reviews differ from that data in what
+they say, not only in how they spell it, and their labels are less certain.
+
+**The generated messages are easier.** The same untouched model, trained on neither, scores 0.557 on generated
+app-review-style test messages and 0.237 on real reviews. The single-problem messages of both side by side (2,547
+accepted app-review-style messages, the 215 scored real reviews):
+
+| | real reviews | generated, app-review style |
+|---|---|---|
+| words, median (10th-90th percentile) | 23 (9-50) | 26 (15-50) |
+| contains a number | 33% | 65% |
+| names a real company or app | 33% | 0% (the prompt forbids it) |
+| greets ("namaste", "namaskar") | 0% | 22% |
+| says "but" ("tara", "तर") | 11% | 51% |
+| says "please" / "plz" | 6% | 20% |
+| contains "!!" | 2% | 19% |
+| contains "worst" | 10% | 1% |
+| distinct word pairs in 200-message samples | 0.82 | 0.63 |
+
+- **The content is cleaner.** Each generated message re-tells a sampled incident with its amount and with the fact
+  that decides the category, because the prompt says messy writing must not hide the problem. That is the "money was
+  taken, but the recharge failed" shape behind the 51% "but". Real reviews more often complain about something that
+  keeps happening ("session expire hunxa"), mention the problem in passing inside a rant, quote the app's error text,
+  name the company or a competitor, and leave the deciding fact out. These are the reviews that end up in `other`.
+- **The style examples did not take.** The generator saw the same 30 real reviews in every request, at the top of a
+  long prompt, and slid back to a politer voice of its own: greetings, "please", double exclamation marks, and less
+  varied wording than real reviews. Rewriting the scenarios in this voice gained only +0.051 on real reviews.
+- **Part of the gap is in the labels.** The real labels come from a large language model reading the same unclear
+  text. In the money categories it has to guess whether money left the account, and some short complaints it gave a
+  category ("my money vanished, what is this") are arguably too vague for any.
+
+Only Kev-0.8B has been trained, so model size is untested. But a fine-tuned model at 0.966 in distribution, and an
+untouched model that loses more than half its accuracy on real text, both point at the data first.
+
+## What would close the gap
+
+- **One real review per generated message.** Pair each scenario with a real review of the same category (never one
+  from the real test or dev set) and let the generator take how that person told their problem: recurring, buried in
+  a rant, half-said, in the app's own words. The scenario still fixes the label, the "must not hide the problem" rule
+  becomes "a careful reader can tell", and real names become invented ones. Most labelled reviews are not used yet,
+  so there are references to draw on.
+- **Check new data before training on it.** On a few hundred messages, the untouched model's accuracy (0.237 on real
+  reviews) and how easily a simple classifier tells them from real reviews show whether the data moved toward real
+  text.
+- A real dev set used for model selection and for the routing threshold, so that real-text behaviour, not
+  generated-text NLL, picks the checkpoint.
+- A larger real test. 215 scored reviews give intervals of about ±6 points, too wide to see a gain of a few points.
+- Human-checked labels for at least the real test, especially in the money categories.
+- More real bank and shop reviews, so those domains can be measured.
+
 ## Data quality
 
 | step | clean synthetic | app-review style |
 |---|---|---|
 | written | 3,000 | 2,964 |
-| verifier (Haiku 5.5) agrees with the scenario label | 2,860 (95.3%) | 2,895 (97.7%) |
-| adjudicator (Sonnet 5.5) agrees on the disputes | 134 of 140 | 66 of 69 |
+| verifier model agrees with the scenario label | 2,860 (95.3%) | 2,895 (97.7%) |
+| adjudicator model agrees on the disputes | 134 of 140 | 66 of 69 |
 | rejected: label disputed | 4 | 3 |
 | rejected by the deterministic checks | 32 (22 Latin letters in clean Devanagari, 4 missing amount or negation, 6 duplicates) | 130 (122 script glitches, 7 not Nepali, 1 duplicate) |
 | accepted | 2,964 | 2,831 |
