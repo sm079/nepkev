@@ -1,0 +1,9 @@
+# Only what the service needs: the package, configs, migrations config and the project metadata.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!alembic.ini
+!nepkev/
+!configs/
+**/__pycache__
