@@ -3,5 +3,5 @@ embedding_model: intfloat/multilingual-e5-small
 top_k: 5
 # Refuse without calling the LLM when the best chunk is less similar than this. Chosen on the eval set's dev split
 # by `python -m nepkev.rag.eval --select-threshold`, which rewrites this line; not set by hand.
-min_similarity: null
+min_similarity: 0.803044
 prompt: answer_v1
