@@ -20,6 +20,7 @@ dependencies = [
 # locally (training runs on a RunPod pod, which installs Kev itself).
 kev = [
     "kev @ git+https://github.com/jaredpalmer/kev@5e42a7a03f28134853dd3ff77461457e921e5ec1",
+    "torch>=2.6,<2.9",   # Kev's own range; listed so the CPU index below applies to it
 ]
 
 # Uploading a trained checkpoint (nepkev push-hf).
